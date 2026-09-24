@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Woven Thread Hero · Webflow embed test</title>
+<style>
+  /* stands in for styles you'd set in the Webflow Designer */
+  body{margin:0;font:16px/1.5 system-ui,sans-serif;color:#2a1e31;background:#efe1dc}
+  .hero{min-height:88vh;display:flex;align-items:center;padding:0 6vw;background-color:#efe1dc}
+  .hero_content{max-width:560px}
+  .hero_content h1{font:300 clamp(40px,6vw,72px)/1.02 Georgia,serif;margin:0 0 20px}
+  .hero_content p{color:#5b4a60;margin:0}
+  .next{padding:64px 6vw}
+</style>
+</head>
+<body>
+
+<!-- In Webflow this is your hero Section, with these custom attributes added in the Settings panel -->
+<section class="hero"
+  data-woven-hero
+  data-woven-controls
+  data-woven-fallback="swirl.jpg"
+  data-woven-settings='{}'>
+  <div class="hero_content">
+    <h1>Find a voice that feels like yours.</h1>
+    <p>This page mimics a Webflow hero so you can test the embed locally. Use the Tune hero button (bottom right).</p>
+  </div>
+</section>
+<section class="next"><p>Content below the hero.</p></section>
+
+<!-- In Webflow this goes in Page settings > Custom code > Before </body> tag (see footer-code.html) -->
+<script src="woven-thread-hero.js"></script>
+</body>
+</html>

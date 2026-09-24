@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Woven Thread Hero</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#EFE3DE;
+    --ink:#2A1E31;
+    --ink-soft:#5B4A60;
+    --plum:#5E2A6E;
+    --teal:#1D6F6B;
+    --panel:rgba(250,244,241,.86);
+    --hero-paper:#efe1dc;
+    color-scheme: light;
+  }
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font:400 16px/1.55 "Figtree",system-ui,-apple-system,"Segoe UI",sans-serif}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:min(92vh,860px);display:flex;flex-direction:column;overflow:hidden;background:var(--paper) url("swirl.jpg") right 36%/auto 100% no-repeat}
+  .hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero canvas[hidden]{display:none}
+  .hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,color-mix(in srgb,var(--hero-paper) 92%,transparent) 0%,color-mix(in srgb,var(--hero-paper) 55%,transparent) 34%,transparent 55%)}
+  .hero > *:not(canvas){position:relative;z-index:1}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:28px clamp(16px,5vw,72px)}
+  .mark{font-family:"Newsreader",Georgia,serif;font-size:22px;letter-spacing:.01em;color:var(--ink);text-decoration:none}
+  .mark em{font-style:italic;color:var(--plum)}
+  .nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:10px 22px;font-size:15px;border-radius:999px;background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .nav a{color:var(--ink-soft);text-decoration:none}
+  .nav a:hover{color:var(--ink)}
+
+  .copy{margin-block:auto;padding:24px clamp(16px,5vw,72px) 72px;max-width:640px}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin:0 0 20px}
+  h1{font-family:"Newsreader",Georgia,serif;font-weight:300;font-size:clamp(40px,6vw,76px);line-height:1.02;letter-spacing:-.015em;margin:0 0 24px;text-wrap:balance}
+  h1 em{font-style:italic;color:var(--plum)}
+  .lede{font-size:clamp(17px,1.4vw,19px);color:var(--ink-soft);max-width:44ch;margin:0 0 36px}
+  .actions{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+  .btn{display:inline-block;padding:15px 26px;border-radius:999px;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:500;font-size:15px}
+  .btn:hover{background:var(--plum)}
+  .link{color:var(--ink);font-weight:500;font-size:15px;text-underline-offset:4px}
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+
+  /* ---------- settings panel (demo only) ---------- */
+  .tune{margin-top:32px;border-radius:14px;background:#f7efeb;border:1px solid rgba(42,30,49,.1);font-size:13px;color:var(--ink)}
+  .tune-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid rgba(42,30,49,.1)}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:3px;border-radius:999px;background:rgba(42,30,49,.08);min-width:min(260px,100%)}
+  .seg button{border:0;border-radius:999px;background:transparent;padding:7px 12px;font:500 12px "Figtree",sans-serif;color:var(--ink);cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+  .tune-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 28px;padding:12px 20px 4px}
+  .group{padding:6px 0 8px}
+  .group[hidden]{display:none}
+  .group h3{margin:0 0 10px;font:600 11px "Figtree",sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--plum)}
+  .row{display:grid;grid-template-columns:72px 1fr 40px;align-items:center;gap:10px;margin-bottom:8px}
+  .row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+  .row input[type=range]{width:100%;accent-color:var(--plum)}
+  .row input[type=color]{width:100%;height:26px;border:1px solid rgba(42,30,49,.2);border-radius:6px;background:transparent;padding:0 2px}
+  .tune-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid rgba(42,30,49,.1)}
+  .tune-foot button{border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:8px 16px;font:500 13px "Figtree",sans-serif;color:var(--ink);cursor:pointer}
+  .tune-foot button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tune-note{margin:0;padding:0 20px 16px;font-size:12px;color:var(--teal)}
+  .tune-note:empty{display:none}
+  .perf{margin:2px 0 0;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .tune-note textarea{width:100%;height:120px;margin-top:6px;font:11px/1.4 ui-monospace,Menlo,monospace;border-radius:6px;border:1px solid rgba(42,30,49,.2);padding:6px}
+
+  .below{padding:64px clamp(16px,5vw,72px);max-width:1320px}
+  .below h2{font-family:"Newsreader",Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px}
+  .below > p{color:var(--ink-soft);margin:0;max-width:65ch}
+
+  @media (max-width:760px){
+    .nav ul{display:none}
+    .hero{min-height:100svh;background-size:cover}
+    .hero::after{background:linear-gradient(180deg,transparent 30%,color-mix(in srgb,var(--hero-paper) 82%,transparent) 58%,color-mix(in srgb,var(--hero-paper) 96%,transparent) 100%)}
+    .copy{margin-top:auto;margin-bottom:0;padding-bottom:88px}
+  }
+</style>
+
+<section class="hero" id="hero">
+  <canvas id="threads" aria-hidden="true"></canvas>
+  <canvas id="swirl" aria-hidden="true" hidden></canvas>
+  <nav class="nav">
+    <a class="mark" href="#hero">Voice <em>Focus</em></a>
+    <ul>
+      <li><a href="#about">About</a></li>
+      <li><a href="#about">Voice therapy</a></li>
+      <li><a href="#about">Fees</a></li>
+      <li><a href="#about">Contact</a></li>
+    </ul>
+  </nav>
+  <div class="copy">
+    <p class="eyebrow">Speech &amp; language therapy</p>
+    <h1>Find a voice that feels <em>like yours.</em></h1>
+    <p class="lede">Gender-affirming voice and communication therapy with an HCPC-registered specialist. Unhurried sessions, in person or online.</p>
+    <div class="actions">
+      <a class="btn" href="#about">Book a free consultation</a>
+      <a class="link" href="#about">How voice therapy works</a>
+    </div>
+  </div>
+</section>
+
+<section class="below" id="about">
+  <h2>Hero settings</h2>
+  <p>Every thread in the hero above is drawn live on the graphics card, so nothing is loaded except the page itself. If the frame rate drops below the target, the hero lowers its resolution first, then the thread count, then the detail per thread, and steps back up when there’s headroom. The animation pauses when the hero leaves the screen. Visitors with “reduce motion” switched on see a still frame.</p>
+  <aside class="tune" id="tune" aria-label="Hero settings">
+  <header class="tune-head">
+    <div class="seg" role="group" aria-label="Renderer">
+      <button type="button" id="modeThreads" aria-pressed="true">Threads</button>
+      <button type="button" id="modePhoto" aria-pressed="false">Photo (lo-fi)</button>
+    </div>
+  </header>
+  <div class="tune-body" id="tuneBody"></div>
+  <footer class="tune-foot">
+    <button type="button" id="pause">Pause</button>
+    <button type="button" id="reset">Reset</button>
+    <button type="button" id="copy" class="primary">Copy</button>
+  </footer>
+  <p class="tune-note" id="copyNote" role="status"></p>
+</aside>
+</section>
+
+
+
+<script>
+/* ============================================================
+   Silk thread hero — plain WebGL, no library.
+   mwpSwirl(canvas, { src, centre, focalY, ... }) returns a
+   controller with .set({speed, flow, twist, shimmer}) and .pause(bool)
+   ============================================================ */
+function mwpSwirl(canvas, opts){
+  const o = Object.assign({
+    src: 'swirl.jpg',
+    centre: [0.787, 0.215],   // hole of the ring, as fraction of image
+    focalY: 0.36,             // vertical point kept in view when cropping
+    widthShare: 0.54,         // share of a landscape hero the artwork spans
+    speed: 1, flow: 1, twist: 1, shimmer: 1,
+    maxDpr: 1.75
+  }, opts || {});
+
+  const gl = canvas.getContext('webgl', {antialias:false, premultipliedAlpha:false, alpha:false})
+          || canvas.getContext('experimental-webgl');
+  if (!gl) return null;                     // CSS background image remains as fallback
+
+  const vs = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+  const fs = `
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uRes, uImg, uOffset, uCentre, uMouse;
+uniform float uScale, uTime, uFlow, uTwist, uShimmer;
+
+float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y);
+}
+float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return v; }
+
+vec3 hueShift(vec3 c, float h){               // rotate hue in YIQ space
+  const mat3 toYIQ=mat3(.299,.596,.211,.587,-.274,-.523,.114,-.322,.312);
+  const mat3 toRGB=mat3(1.,1.,1.,.956,-.272,-1.106,.621,-.647,1.703);
+  vec3 yiq=toYIQ*c; float s=sin(h), co=cos(h);
+  yiq.yz=mat2(co,s,-s,co)*yiq.yz; return toRGB*yiq;
+}
+
+vec3 sampleArt(vec2 uv){
+  // left of the artwork: mirror-tile the plain paper strip so grain continues
+  if(uv.x < 0.0){ float x = mod(-uv.x, 0.16); uv.x = x > 0.08 ? 0.16 - x : x; }
+  return texture2D(uTex, clamp(uv, vec2(0.001), vec2(0.999))).rgb;
+}
+
+void main(){
+  vec2 p  = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  vec2 ip = (p - uOffset) / uScale + uMouse * 7.0;       // image pixels, gentle parallax
+  vec2 c  = uCentre * uImg;
+  vec2 d  = ip - c;
+  float r = length(d) / uImg.y;
+  float t = uTime;
+
+  // 1. slow twist about the ring's hole, strongest near the ring
+  float tw = uTwist * 0.02 * sin(t*0.31 - r*4.5) * exp(-r*2.0);
+  float cs = cos(tw), sn = sin(tw);
+  vec2 q = c + vec2(cs*d.x - sn*d.y, sn*d.x + cs*d.y);
+
+  // 2. breathing: a whisper of scale about the centre
+  q = c + (q - c) * (1.0 + 0.005*uTwist*sin(t*0.21));
+
+  // 3. low-frequency flow field, like silk in slow water
+  vec2 np = q / uImg.y * 2.4;
+  vec2 w = vec2(fbm(np + vec2(t*0.045, -t*0.035)),
+                fbm(np + vec2(5.2,1.3) + vec2(-t*0.04, t*0.05))) - 0.5;
+  q += w * uFlow * 16.0;
+
+  vec2 uv = q / uImg;
+  vec3 col = sampleArt(uv);
+
+  // thread mask: how far this pixel is from bare paper
+  float m = smoothstep(0.035, 0.22, distance(col, vec3(0.93,0.87,0.85)));
+
+  // 4. travelling glints and a faint iridescent drift along the threads
+  float a  = atan(d.y, d.x);
+  float ph = a*1.0 + r*13.0 - t*0.55 + fbm(np*1.6)*3.0;
+  float band = 0.5 + 0.5*sin(ph);
+  float glint = pow(band, 22.0);
+  float sheen = pow(band, 3.0);
+  col = hueShift(col, m * uShimmer * 0.09 * sin(a*2.0 + r*6.0 + t*0.27));
+  col += m * uShimmer * (glint*0.13 + sheen*0.03) * vec3(1.0, 0.96, 0.9);
+
+  gl_FragColor = vec4(clamp(col,0.,1.), 1.0);
+}`;
+
+  function sh(type, src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog,'p'); gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  const U = {}; ['uTex','uRes','uImg','uOffset','uCentre','uMouse','uScale','uTime','uFlow','uTwist','uShimmer']
+    .forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+  const tex = gl.createTexture();
+  let img = null, ready = false, running = true, visible = true;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  let t = 0, last = 0, raf = 0;
+  const mouse = {x:0,y:0,tx:0,ty:0};
+
+  function layout(){
+    const dpr = Math.min(window.devicePixelRatio || 1, o.maxDpr);
+    const W = Math.round(canvas.clientWidth * dpr), H = Math.round(canvas.clientHeight * dpr);
+    if (canvas.width !== W || canvas.height !== H){ canvas.width = W; canvas.height = H; }
+    gl.viewport(0,0,W,H);
+    if (!img) return;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const share = W / H > 1.1 ? o.widthShare : 1.0;
+    const s = Math.max(H / ih, share * W / iw);
+    const offX = W - iw * s;
+    let offY = H * 0.5 - o.focalY * ih * s;
+    offY = Math.min(0, Math.max(H - ih * s, offY));
+    gl.uniform2f(U.uRes, W, H);
+    gl.uniform2f(U.uImg, iw, ih);
+    gl.uniform2f(U.uOffset, offX, offY);
+    gl.uniform1f(U.uScale, s);
+  }
+
+  function draw(){
+    gl.uniform1f(U.uTime, t);
+    gl.uniform2f(U.uMouse, mouse.x, mouse.y);
+    gl.uniform1f(U.uFlow, o.flow);
+    gl.uniform1f(U.uTwist, o.twist);
+    gl.uniform1f(U.uShimmer, o.shimmer);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function frame(now){
+    raf = 0;
+    const dt = last ? Math.min((now - last) / 1000, 0.05) : 0; last = now;
+    t += dt * o.speed;
+    mouse.x += (mouse.tx - mouse.x) * 0.03; mouse.y += (mouse.ty - mouse.y) * 0.03;
+    draw();
+    loop();
+  }
+  function loop(){
+    if (ready && running && visible && !reduce.matches && !raf) raf = requestAnimationFrame(frame);
+    else if (!raf) last = 0;
+  }
+  function still(){ if (ready){ layout(); draw(); } }
+
+  img = new Image();
+  img.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+    gl.uniform1i(U.uTex, 0);
+    gl.uniform2f(U.uCentre, o.centre[0], o.centre[1]);
+    ready = true; still(); loop();
+  };
+  img.src = o.src;
+
+  new ResizeObserver(still).observe(canvas);
+  new IntersectionObserver(e => { visible = e[0].isIntersecting; loop(); }).observe(canvas);
+  reduce.addEventListener?.('change', () => { still(); loop(); });
+  addEventListener('pointermove', e => {
+    const r = canvas.getBoundingClientRect();
+    mouse.tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+    mouse.ty = ((e.clientY - r.top) / r.height - 0.5) * 2;
+  }, {passive:true});
+
+  return {
+    set(v){ Object.assign(o, v); if (!raf) still(); },
+    pause(p){ running = !p; if (p) still(); loop(); }
+  };
+}
+
+/* ============================================================
+   Silk threads — procedural, WebGL2, no library.
+   Every thread is a ribbon (an instanced triangle strip) whose shape,
+   width and colour are computed in the vertex shader (no buffers).
+
+   Model: each thread is one loop drawn in two halves.
+   Back half: the inside wall of a funnel, stretched between an
+   off-frame rim and the edge of the hole.
+   Front half: one of a family of ellipses that all pass through the
+   pinch, growing and dropping as the thread sits further out.
+
+   mwpThreads(canvas, opts) returns { set(obj), get(), pause(bool) }
+   ============================================================ */
+function mwpThreads(canvas, opts){
+  const o = Object.assign({
+    threads: 2600,          // number of threads
+    segments: 180,          // points per half-loop (quality ladder scales this)
+    thickness: 1,           // strand width in CSS pixels
+    highlights: 1,          // amount of thicker white strands
+    targetFps: 50,          // adaptive quality: 0 = off
+    onPerf: null,           // callback({fps, level, levels}) about once a second
+    focalY: 0.36, widthShare: 0.54,
+    art: [1400, 2304],      // artwork frame in px (matches the photo so layouts line up)
+    speed: 1, flow: 1, twist: 1, shimmer: 1, parallax: 1,   // motion
+    fan: 1, hole: 1,                                         // shape
+    opacity: 1, warmth: 0.58, accents: 1,                    // threads
+    hue: 0, saturation: 1, brightness: 1,                    // colour
+    paper: '#efe1dc',                                        // background
+    zoom: 1, shiftX: 0,                                      // framing
+    maxDpr: 2
+  }, opts || {});
+
+  // no MSAA: strands draw their own soft edges, which is much cheaper
+  const gl = canvas.getContext('webgl2', {antialias:false, alpha:false, premultipliedAlpha:true});
+  if (!gl) return null;
+
+  /* ---------- background: paper ---------- */
+  const bgVS = `#version 300 es
+  void main(){ vec2 p = vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position = vec4(p*2.-1.,0.,1.); }`;
+  const bgFS = `#version 300 es
+  precision highp float;
+  uniform vec2 uRes; uniform vec3 uPaper; out vec4 frag;
+  float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
+  float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+    return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+  void main(){
+    vec2 p = gl_FragCoord.xy;
+    float g = n(p*0.9)*0.5 + n(p*0.35)*0.35 + n(p*0.08)*0.15;     // cold-press paper tooth
+    vec3 paper = uPaper;
+    paper *= 0.985 + g*0.03;
+    float v = length((p/uRes - 0.5)*vec2(1.0,0.8));
+    paper *= 1.0 - v*v*0.05;
+    frag = vec4(paper, 1.0);
+  }`;
+
+  /* ---------- threads ---------- */
+  const thVS = `#version 300 es
+  precision highp float;
+  uniform int uSeg, uHalf, uInstBase, uIsHl;
+  uniform float uTime, uFlow, uTwist, uShimmer;
+  uniform vec2 uRes, uOffset, uArt, uMouse;
+  uniform float uScale, uFan, uHole, uOpacity, uWarm, uAccent, uHue, uSat, uBright, uThick, uDpr;
+  out vec4 vCol;
+  out float vAcross, vHalf, vHl;
+
+  const float PI = 3.14159265, TAU = 6.2831853;
+  vec3 hueShift(vec3 c, float h){
+    const mat3 toYIQ=mat3(.299,.596,.211,.587,-.274,-.523,.114,-.322,.312);
+    const mat3 toRGB=mat3(1.,1.,1.,.956,-.272,-1.106,.621,-.647,1.703);
+    vec3 yiq=toYIQ*c; float s=sin(h), co=cos(h);
+    yiq.yz=mat2(co,s,-s,co)*yiq.yz; return toRGB*yiq;
+  }
+  float h1(float n){ return fract(sin(n*127.1 + 3.7)*43758.5453); }
+
+  vec3 pal(float x){                       // along-the-band colour for the dense inner threads
+    // x: 0 = pinch (going up/back) .. 1 = back right .. 2 = pinch again via the front
+    vec3 purpleDk = vec3(.20,.06,.24), purple = vec3(.42,.17,.48), plum = vec3(.55,.24,.55);
+    vec3 teal = vec3(.03,.42,.44), green = vec3(.07,.50,.36), jade = vec3(.36,.72,.58);
+    vec3 c = mix(purpleDk, teal, smoothstep(.02,.22,x));
+    c = mix(c, green, smoothstep(.30,.55,x));
+    c = mix(c, jade, smoothstep(.55,.75,x)*.5);
+    c = mix(c, purpleDk, smoothstep(.85,1.08,x));
+    c = mix(c, purple, smoothstep(1.1,1.35,x));
+    c = mix(c, plum, smoothstep(1.5,1.9,x)*.6);
+    return c;
+  }
+
+  // where a thread sits at angle phi, in canvas pixels
+  vec2 placeAt(float phi, float r1, float r2, float r3, float r4, float t){
+    float th0 = 2.779 + phi;                                // angle around the loop (pinch on its lower-left flank)
+    float oF = pow(r1, 2.1);                 // front: dense purple edge, sparse fan
+    float oB = pow(r1, 1.25);                // back wall: evenly packed
+
+    // centreline: outer rim of the funnel (top, off-frame) and inner edge of the front band
+    vec2  cc = vec2(0.550, 0.000);
+    vec2  R  = vec2(0.400, 0.335) * (1.0 + (r2-.5)*.03);
+    float breathe = 1.0 + 0.012*uTwist*sin(t*0.23);
+    vec3  C  = vec3(cc + R*breathe*vec2(cos(th0), sin(th0)), sin(th0)*0.22);
+    float backW = 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
+    float o = mix(oF, oB, backW);
+
+    // FRONT: a family of ellipses that all pass through the pinch, growing and
+    // dropping as the thread sits further out, so the fan stays round
+    float of = oF * (1.0 + 0.035*uTwist*sin(t*0.21 + r3*6.28));
+    vec2  pin0 = cc + R*vec2(cos(2.779), sin(2.779));
+    vec2  fc = mix(cc, pin0 + (vec2(0.550, 0.455) - pin0)*uFan, of) + vec2(0.006, 0.01)*uTwist*sin(t*0.17 + of*3.0);
+    vec2  fR = mix(R, vec2(0.485, 0.535)*uFan, of) * (1.0 + 0.01*uTwist*sin(t*0.23 + 2.0));
+    float fp = mix(2.779, 3.835, of);                    // angle at which this ellipse meets the pinch
+    float fa = fp + phi;
+    vec3 Pf = vec3(fc + fR*vec2(cos(fa), sin(fa)), sin(fa)*0.22*(1.0 + of));
+    // ease every ellipse exactly into the pinch point
+    vec2 miss  = pin0 - (fc + fR*vec2(cos(fp), sin(fp)));
+    Pf.xy += miss * smoothstep(1.35*PI, 2.0*PI, phi);
+    Pf.z  += 0.22*sin(2.779) - 0.22*(1.0 + of)*sin(fp);      // same depth at the crossing, so tilt can't split it
+    // lift the inner edge of the front so it overlaps the start of the wall (no seam near the crossing)
+    Pf.y -= (1.0 - of) * (0.010*smoothstep(1.3*PI, 1.6*PI, phi) + 0.022*smoothstep(1.55*PI, 1.8*PI, phi)*(1.0 - smoothstep(1.86*PI, 2.0*PI, phi)));
+
+    // BACK: the inside wall of the funnel, stretched between the rim (C, off the top)
+    // and the edge of the hole, which it follows smoothly round from bottom-left
+    vec2  hc = vec2(0.522, 0.188), hr = vec2(0.160, 0.150) * uHole * (1.0 + 0.02*uTwist*sin(t*0.23 + 1.0));
+    float psi = 0.52*PI + 1.58*PI*pow(clamp(phi/PI, 0., 1.), 1.25) + 0.03*uTwist*sin(t*0.17);
+    vec3  I   = vec3(hc + hr*vec2(cos(psi), sin(psi)) + vec2(0., 0.012), -0.12);
+    float open = smoothstep(0.0, 0.10*PI, phi);            // edge-on at the pinch
+    float ob = oB * open * (1.0 + 0.04*sin(t*0.31 + r4*6.28));
+    vec3 Pb = mix(C, I, ob);
+    Pb.xy += vec2(-0.015, 0.05) * sin(ob*PI) * (1.0 - smoothstep(0.2*PI, 0.5*PI, phi)*.6);   // the wall bows as it descends
+
+    vec3 P = mix(Pf, Pb, backW);
+
+    // slow flow: every thread undulates on its own phase, except at the crossing
+    float amp = uFlow * (0.0025 + 0.009*o);
+    float waist = 1.0 - exp(-pow((phi - TAU)/(0.22*PI), 2.0));
+    waist *= mix(1.0, smoothstep(0.0, 0.2*PI, phi), backW);
+    P.xy += waist * amp * vec2(sin(phi*3.0 + t*0.42 + r3*6.28), cos(phi*2.0 - t*0.35 + r4*6.28));
+
+    // gentle 3D sway (time + pointer)
+    float ry = uMouse.x*0.05 + 0.02*sin(t*0.11), rx = -uMouse.y*0.04;
+    vec3 q = P - vec3(cc, 0.);
+    q = vec3(q.x*cos(ry) + q.z*sin(ry), q.y, -q.x*sin(ry) + q.z*cos(ry));
+    q = vec3(q.x, q.y*cos(rx) - q.z*sin(rx), q.y*sin(rx) + q.z*cos(rx));
+    P = q + vec3(cc, 0.);
+    return uOffset + P.xy * uArt.y * uScale;
+  }
+
+  void main(){
+    // one instance per thread; each is a triangle strip of N+1 point pairs
+    int   i    = gl_VertexID / 2;
+    float side = float(gl_VertexID - i*2) * 2.0 - 1.0;
+    float fi = float(gl_InstanceID + uInstBase);
+    float r1=h1(fi*1.13), r2=h1(fi*2.71+1.), r3=h1(fi*3.33+2.), r4=h1(fi*5.17+3.), r5=h1(fi*7.07+4.), r6=h1(fi*9.91+5.);
+    float t = uTime;
+
+    // back half: 0..PI. front half: PI..TAU+EXT, carrying on through the pinch and off the
+    // top of the frame, so no thread starts or stops where it can be seen
+    const float EXT = 0.34*PI;
+    float span = uHalf == 0 ? PI : PI + EXT;
+    float phi  = (uHalf == 0 ? 0.0 : PI) + span * float(i) / float(uSeg);
+    float dphi = span / float(uSeg);
+
+    // centre point and direction of the strand in screen space
+    vec2 a  = placeAt(phi, r1, r2, r3, r4, t);
+    vec2 b  = placeAt(phi + dphi*0.5, r1, r2, r3, r4, t);
+    vec2 tg = b - a; float tl = length(tg);
+    tg = tl > 1e-4 ? tg / tl : vec2(1., 0.);
+
+    // strand width in device pixels; highlight strands are thicker
+    bool  hl = uIsHl == 1;                                  // white strands draw last, on top
+    float w  = uThick * uDpr * (hl ? 1.9 : 1.0) * (0.75 + 0.5*r5);
+    float halfW = max(w, 1.0) * 0.5;
+    float reach = halfW + 1.0;                              // + 1px for the soft edge
+    vec2 px = a + vec2(-tg.y, tg.x) * side * reach;
+    vec2 clip = px / uRes * 2.0 - 1.0;
+    gl_Position = vec4(clip.x, -clip.y, 0., 1.);
+    vAcross = side * reach; vHalf = halfW; vHl = hl ? 1.0 : 0.0;
+
+    float oF = pow(r1, 2.1), oB = pow(r1, 1.25);
+    float backW = 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
+    float o = mix(oF, oB, backW);
+
+    /* ----- colour ----- */
+    float x = phi / PI;
+    float backness = 1.0 - smoothstep(0.85, 1.25, x);
+    // back wall: dark teal at the rim, greens and mint deeper in
+    float ow = o + (r3-.5)*.18;
+    vec3 wall = mix(vec3(.50,.76,.62), vec3(.07,.50,.34), smoothstep(.05,.40,ow));
+    wall = mix(wall, vec3(.02,.36,.42), smoothstep(.55,.85,ow));
+    wall = mix(wall, vec3(.03,.22,.30), smoothstep(.85,1.0,ow)*.7);
+    wall = mix(wall, vec3(.92,.78,.76), step(.93, r4)*.7);                // stray pale threads
+    wall = mix(vec3(.18,.05,.22), wall, smoothstep(.02,.20,x));            // dark near the pinch
+    // front: purple body, warm threads woven through, pale fan outside
+    vec3 purple = mix(vec3(.20,.06,.24), vec3(.46,.20,.52), smoothstep(.0,.12,o));
+    purple = mix(purple, vec3(.56,.26,.58), smoothstep(.12,.30,o));
+    vec3 warm = mix(vec3(.72,.18,.16), vec3(.93,.52,.18), r3);
+    vec3 pale = mix(vec3(.95,.84,.80), vec3(.55,.80,.66), smoothstep(.35,.75,r4)*(1.0-smoothstep(1.62,1.8,x)));
+    vec3 fr = purple;
+    fr = mix(fr, warm, smoothstep(.24,.36,o) * step(1.0 - uWarm, r5+o*.3));
+    fr = mix(fr, pale, smoothstep(.40,.66,o+(r5-.5)*.25) * step(.12, r4));
+    vec3 col = mix(fr, wall, backness);
+    // accent threads
+    if (r6 > 1.0 - 0.10*uAccent) col = mix(col, mix(vec3(.96,.72,.22), vec3(.85,.28,.20), r4), .75);   // gold / vermilion
+    else if (r6 < 0.05*uAccent) col = mix(col, vec3(.50,.84,.78), .6);                            // aqua
+    col *= 0.82 + r5*0.34;
+    col *= mix(1.0, 0.72, smoothstep(TAU, TAU + 0.12*PI, phi) * (1.0 - smoothstep(.3,.7,o)));
+
+    // travelling sheen along the threads
+    float band = 0.5 + 0.5*sin(phi*2.0 - t*0.6 + r2*1.5 + o*5.0);
+    col += uShimmer * pow(band, 14.0) * 0.22 * vec3(1., .95, .88);
+
+    float alpha = mix(0.72, 0.22, smoothstep(0., .8, o)*(1.0-backW*.6)) * (0.45 + 0.55*r5);
+    alpha *= 1.0 - 0.45*smoothstep(.35,.8,o)*(1.0-backW);
+    if (r6 > 1.0 - 0.10*uAccent) alpha = max(alpha, .6);
+    // back wall fades in above the frame; front threads fade out after leaving it
+    alpha *= mix(1.0, smoothstep(0.0, 0.05*PI, phi), backW);
+    alpha *= 1.0 - 0.85*smoothstep(TAU, TAU + 0.08*PI, phi)*smoothstep(.18, .5, o)*(1.0-backW);
+    alpha *= 1.0 - smoothstep(TAU + EXT*0.6, TAU + EXT, phi);
+    // white strands: pale cream, more opaque, picked out by a specular core in the fragment shader
+    if (hl){ col = mix(col, vec3(.99,.95,.90), .6); alpha = max(alpha, .9 * (0.75 + 0.25*r5)) * (1.0 - 0.75*exp(-pow((phi - TAU)/(0.14*PI), 2.0))) * mix(1.0, smoothstep(0.1*PI, 0.3*PI, phi), backW) * mix(1.0, smoothstep(0.0, 0.05*PI, phi), backW) * (1.0 - smoothstep(TAU + EXT*0.6, TAU + EXT, phi)); }
+    alpha *= clamp(w, 0.35, 1.0);                          // strands thinner than a pixel get fainter, not jagged
+    col = hueShift(col, uHue);
+    col = mix(vec3(dot(col, vec3(.299,.587,.114))), col, uSat) * uBright;
+    alpha = clamp(alpha * uOpacity, 0., 1.);
+    vCol = vec4(clamp(col,0.,1.) * alpha, alpha);             // premultiplied
+  }`;
+  const thFS = `#version 300 es
+  precision highp float;
+  in vec4 vCol; in float vAcross, vHalf, vHl; out vec4 frag;
+  void main(){
+    float d  = abs(vAcross);
+    float aa = clamp(vHalf + 0.5 - d, 0.0, 1.0);           // 1px soft edge
+    float x  = clamp(d / max(vHalf, 0.5), 0.0, 1.0);        // 0 at the core .. 1 at the edge
+    vec3 c = vCol.rgb * (1.0 - 0.38*x*x*smoothstep(1.0, 2.5, vHalf));   // rounded shading on wider strands
+    c += vHl * vCol.a * pow(1.0 - x, 3.0) * 0.8 * vec3(1.0, .99, .97); // specular core on white strands
+    frag = vec4(min(c, vec3(vCol.a)), vCol.a) * aa;
+  }`;
+
+  function prog(vs, fs){
+    const p = gl.createProgram();
+    [[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]].forEach(([k,src])=>{
+      const s = gl.createShader(k); gl.shaderSource(s,src); gl.compileShader(s);
+      if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      gl.attachShader(p,s);
+    });
+    gl.linkProgram(p);
+    if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const bg = prog(bgVS, bgFS), th = prog(thVS, thFS);
+  const U = n => gl.getUniformLocation(th, n);
+  const u = {}; ['uSeg','uHalf','uInstBase','uIsHl','uTime','uFlow','uTwist','uShimmer','uRes','uOffset','uArt','uMouse','uScale','uFan','uHole','uOpacity','uWarm','uAccent','uHue','uSat','uBright','uThick','uDpr'].forEach(n=>u[n]=U(n));
+  const uBgRes = gl.getUniformLocation(bg,'uRes'), uBgPaper = gl.getUniformLocation(bg,'uPaper');
+  const hex = h => { const n = parseInt(h.replace('#',''),16); return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255]; };
+  gl.bindVertexArray(gl.createVertexArray());
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  let t = 0, last = 0, raf = 0, running = true, visible = true, resumed = true;
+  const mouse = {x:0,y:0,tx:0,ty:0};
+  let L = {W:1,H:1,s:1,ox:0,oy:0,dpr:1};
+
+  /* ---------- adaptive quality ----------
+     When the frame rate misses the target, step down the ladder: resolution first
+     (the biggest cost: every strand is filled per pixel), then thread count, then points
+     per thread. With headroom for a while, try one step back up; if that step fails
+     straight away, stay put for 30s before trying again. */
+  const LADDER = [            // [resolution, threads, points]
+    [1.00, 1.00, 1.00], [0.85, 1.00, 1.00], [0.75, 0.85, 1.00], [0.75, 0.70, 0.85],
+    [0.65, 0.60, 0.75], [0.55, 0.50, 0.65], [0.50, 0.40, 0.55]
+  ];
+  const perf = { level: 0, frames: 0, time: 0, changedAt: 0, steppedUpAt: -1e9, holdUntil: 0 };
+  function setLevel(n, now){
+    n = Math.max(0, Math.min(LADDER.length - 1, n));
+    if (n === perf.level) return;
+    if (n > perf.level && now - perf.steppedUpAt < 4000) perf.holdUntil = now + 30000;   // the step up didn't hold
+    if (n < perf.level) perf.steppedUpAt = now;
+    perf.level = n; perf.changedAt = now; perf.frames = 0; perf.time = 0;
+    layout();
+  }
+  function measure(dt, now){
+    if (!dt) return;
+    perf.frames++; perf.time += dt;
+    if (perf.time < 1 || now - perf.changedAt < 1500) return;   // 1s windows, ignoring a settle period after changes
+    const fps = perf.frames / perf.time;
+    perf.frames = 0; perf.time = 0;
+    const target = o.targetFps;
+    if (target > 0){
+      if (fps < target * 0.9) setLevel(perf.level + 1, now);
+      else if (fps >= target * 0.97 && perf.level > 0 && now - perf.changedAt > 6000 && now > perf.holdUntil) setLevel(perf.level - 1, now);
+    } else if (perf.level) setLevel(0, now);
+    o.onPerf && o.onPerf({ fps: Math.round(fps), level: perf.level, levels: LADDER.length - 1 });
+  }
+
+  function layout(){
+    const dpr = Math.max(0.5, Math.min(devicePixelRatio || 1, o.maxDpr) * LADDER[perf.level][0]);
+    const W = Math.round(canvas.clientWidth*dpr), H = Math.round(canvas.clientHeight*dpr);
+    if (canvas.width !== W || canvas.height !== H){ canvas.width = W; canvas.height = H; }
+    const [iw, ih] = o.art;
+    const share = W/H > 1.1 ? o.widthShare : 1.0;
+    const s = Math.max(H/ih, share*W/iw) * o.zoom;
+    let oy = H*0.5 - o.focalY*ih*s; if (ih*s >= H) oy = Math.min(0, Math.max(H - ih*s, oy));
+    L = {W, H, s, ox: W - iw*s + o.shiftX*W, oy, dpr};
+  }
+
+  function draw(){
+    gl.viewport(0,0,L.W,L.H);
+    gl.disable(gl.BLEND);
+    gl.useProgram(bg); gl.uniform2f(uBgRes, L.W, L.H); gl.uniform3fv(uBgPaper, hex(o.paper)); gl.drawArrays(gl.TRIANGLES,0,3);
+
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.useProgram(th);
+    const q = LADDER[perf.level];
+    const seg = Math.max(48, Math.round(o.segments * q[2]));
+    const threads = Math.max(200, Math.round(o.threads * q[1]));
+    gl.uniform1i(u.uSeg, seg);
+    gl.uniform1f(u.uThick, o.thickness); gl.uniform1f(u.uDpr, L.dpr);
+    gl.uniform1f(u.uTime, t); gl.uniform1f(u.uFlow, o.flow); gl.uniform1f(u.uTwist, o.twist); gl.uniform1f(u.uShimmer, o.shimmer);
+    gl.uniform2f(u.uRes, L.W, L.H); gl.uniform2f(u.uOffset, L.ox, L.oy); gl.uniform2f(u.uArt, o.art[0], o.art[1]);
+    gl.uniform1f(u.uScale, L.s); gl.uniform2f(u.uMouse, mouse.x*o.parallax, mouse.y*o.parallax);
+    gl.uniform1f(u.uFan, o.fan); gl.uniform1f(u.uHole, o.hole); gl.uniform1f(u.uOpacity, o.opacity);
+    gl.uniform1f(u.uWarm, o.warmth); gl.uniform1f(u.uAccent, o.accents);
+    gl.uniform1f(u.uHue, o.hue*Math.PI/180); gl.uniform1f(u.uSat, o.saturation); gl.uniform1f(u.uBright, o.brightness);
+    const verts = (seg + 1) * 2;                             // one triangle strip per thread
+    const hlCount = Math.round(threads * 0.008 * o.highlights);  // extra white strands, drawn on top
+    for (let half = 0; half < 2; half++){                      // back of the loop first, then the front
+      gl.uniform1i(u.uHalf, half);
+      gl.uniform1i(u.uIsHl, 0); gl.uniform1i(u.uInstBase, 0);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, verts, threads);
+      if (hlCount){
+        gl.uniform1i(u.uIsHl, 1); gl.uniform1i(u.uInstBase, threads);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, verts, hlCount);
+      }
+    }
+  }
+
+  function frame(now){
+    raf = 0;
+    const raw = last ? (now-last)/1000 : 0; last = now;
+    if (raw && !resumed) measure(raw, now);
+    resumed = false;
+    const dt = Math.min(raw, 0.05);
+    t += dt*o.speed;
+    mouse.x += (mouse.tx-mouse.x)*0.03; mouse.y += (mouse.ty-mouse.y)*0.03;
+    draw(); loop();
+  }
+  function loop(){
+    if (running && visible && !reduce.matches && !raf) raf = requestAnimationFrame(frame);
+    else if (!raf){ last = 0; resumed = true; }
+  }
+  function still(){ layout(); draw(); }
+
+  still(); loop();
+  new ResizeObserver(still).observe(canvas);
+  new IntersectionObserver(e => { visible = e[0].isIntersecting; loop(); }).observe(canvas);
+  reduce.addEventListener?.('change', () => { still(); loop(); });
+  document.addEventListener('visibilitychange', () => { resumed = true; perf.frames = 0; perf.time = 0; });   // don't count time spent in a background tab
+  addEventListener('pointermove', e => {
+    const r = canvas.getBoundingClientRect();
+    mouse.tx = ((e.clientX-r.left)/r.width - .5)*2; mouse.ty = ((e.clientY-r.top)/r.height - .5)*2;
+  }, {passive:true});
+
+  return {
+    set(v){ Object.assign(o, v); if (!raf) still(); },
+    get(){ return Object.assign({}, o); },
+    quality(){ return { level: perf.level, levels: LADDER.length - 1 }; },
+    pause(p){ running = !p; if (p) still(); loop(); },
+    time(v){ t = v; still(); }
+  };
+}
+
+
+/* ---------- settings panel ---------- */
+const narrow = matchMedia('(max-width: 760px)').matches;
+const threadsCanvas = document.getElementById('threads'), swirlCanvas = document.getElementById('swirl');
+const hero = document.getElementById('hero');
+
+// every control: [key, label, min, max, step, default, format]; `both` = also drives the photo version
+const GROUPS = [
+  { name: 'Motion', open: true, both: true, items: [
+    ['speed',    'Speed',    0, 2,   0.05, 1],
+    ['flow',     'Flow',     0, 3,   0.05, 1],
+    ['twist',    'Twist',    0, 3,   0.05, 1],
+    ['shimmer',  'Shimmer',  0, 2,   0.05, 1],
+    ['parallax', 'Mouse tilt', 0, 3, 0.05, 1, null, true],
+  ]},
+  { name: 'Shape', open: true, items: [
+    ['fan',  'Fan size',  0.7, 1.3, 0.01, 1],
+    ['hole', 'Hole size', 0.6, 1.4, 0.01, 1],
+  ]},
+  { name: 'Threads', open: true, items: [
+    ['threads', 'Count',   400, 4000, 100, narrow ? 1600 : 2600, v => v.toFixed(0)],
+    ['thickness',  'Thickness', 0.4, 3, 0.05, 1],
+    ['highlights', 'Highlights', 0, 4, 0.1, 1],
+    ['opacity', 'Opacity', 0.3, 1.6,  0.01, 1],
+    ['warmth',  'Warmth', 0, 1, 0.01, 0.58],
+    ['accents', 'Accents', 0, 3,  0.05, 1],
+  ]},
+  { name: 'Colour', open: false, items: [
+    ['hue',        'Hue shift',  -180, 180, 1, 0, v => v.toFixed(0) + '°'],
+    ['saturation', 'Saturation', 0, 1.6,  0.01, 1],
+    ['brightness', 'Brightness', 0.6, 1.3, 0.01, 1],
+    ['paper',      'Paper',      0, 0, 0, '#efe1dc', null, false, 'color'],
+  ]},
+  { name: 'Performance', open: true, items: [
+    ['targetFps', 'Target fps', 0, 60, 5, 50, v => v ? v.toFixed(0) : 'Off'],
+  ]},
+  { name: 'Framing', open: false, items: [
+    ['zoom',       'Zoom',        0.6, 1.6, 0.01, 1],
+    ['shiftX',     'Shift x', -0.4, 0.4, 0.01, 0],
+    ['focalY',     'Shift y',  0, 1, 0.01, 0.36],
+    ['widthShare', 'Art width',   0.3, 1, 0.01, 0.54],
+  ]},
+];
+const DEFAULTS = {};
+GROUPS.forEach(g => g.items.forEach(([k,,,,,d]) => DEFAULTS[k] = d));
+const state = Object.assign({}, DEFAULTS);
+
+const perfOut = document.createElement('p');
+perfOut.className = 'perf'; perfOut.setAttribute('role', 'status');
+perfOut.textContent = 'Measuring…';
+const threads = mwpThreads(threadsCanvas, Object.assign({ maxDpr: 1.5, onPerf: p => {
+  perfOut.textContent = `${p.fps} fps · ` + (p.level ? `quality stepped down ${p.level} of ${p.levels}` : 'full quality');
+}}, state));
+let swirl = null, mode = 'threads', paused = false;
+if (threads) hero.style.backgroundImage = 'none';
+
+// build the panel
+const body = document.getElementById('tuneBody');
+const fmt2 = v => (+v).toFixed(2);
+GROUPS.forEach(g => {
+  const det = document.createElement('div');
+  det.className = 'group'; det.dataset.both = g.both ? '1' : '';
+  det.innerHTML = `<h3>${g.name}</h3>`;
+  g.items.forEach(([k, label, min, max, step, def, fmt, threadsOnly, type]) => {
+    const row = document.createElement('div');
+    row.className = 'row'; if (threadsOnly) row.dataset.threadsOnly = '1';
+    const out = type === 'color' ? '' : `<output for="c-${k}">${(fmt || fmt2)(def)}</output>`;
+    row.innerHTML = type === 'color'
+      ? `<label for="c-${k}">${label}</label><input id="c-${k}" type="color" value="${def}"><span></span>`
+      : `<label for="c-${k}">${label}</label><input id="c-${k}" type="range" min="${min}" max="${max}" step="${step}" value="${def}">${out}`;
+    const input = row.querySelector('input'), o = row.querySelector('output');
+    input.addEventListener('input', () => {
+      const v = type === 'color' ? input.value : +input.value;
+      state[k] = v; if (o) o.value = (fmt || fmt2)(v);
+      apply({[k]: v});
+    });
+    det.appendChild(row);
+  });
+  if (g.name === 'Performance') det.appendChild(perfOut);
+  body.appendChild(det);
+});
+
+function apply(v){
+  if ('paper' in v) document.documentElement.style.setProperty('--hero-paper', v.paper);
+  threads && threads.set(v);
+  if (swirl){
+    const s = {}; ['speed','flow','twist','shimmer'].forEach(k => { if (k in v) s[k] = v[k]; });
+    swirl.set(s);
+  }
+}
+function syncInputs(){
+  GROUPS.forEach(g => g.items.forEach(([k,,,,,, fmt, , type]) => {
+    const input = document.getElementById('c-' + k); input.value = state[k];
+    const out = input.parentNode.querySelector('output'); if (out) out.value = (fmt || fmt2)(state[k]);
+  }));
+}
+
+function setMode(m){
+  if (m === 'threads' && !threads) return;
+  mode = m;
+  document.getElementById('modeThreads').setAttribute('aria-pressed', String(m === 'threads'));
+  document.getElementById('modePhoto').setAttribute('aria-pressed', String(m === 'photo'));
+  body.querySelectorAll('.group').forEach(d => d.hidden = m === 'photo' && !d.dataset.both);
+  body.querySelectorAll('[data-threads-only]').forEach(r => r.hidden = m === 'photo');
+  threadsCanvas.hidden = m !== 'threads'; swirlCanvas.hidden = m !== 'photo';
+  if (m === 'photo' && !swirl){
+    swirl = mwpSwirl(swirlCanvas, { src: 'swirl.jpg' });
+    swirl && swirl.set({speed: state.speed, flow: state.flow, twist: state.twist, shimmer: state.shimmer});
+  }
+  threads && threads.pause(paused || m !== 'threads');
+  swirl && swirl.pause(paused || m !== 'photo');
+}
+if (!threads){ setMode('photo'); document.getElementById('modeThreads').disabled = true; }
+document.getElementById('modeThreads').addEventListener('click', () => setMode('threads'));
+document.getElementById('modePhoto').addEventListener('click', () => setMode('photo'));
+
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused; e.currentTarget.textContent = paused ? 'Play' : 'Pause';
+  threads && threads.pause(paused || mode !== 'threads'); swirl && swirl.pause(paused || mode !== 'photo');
+});
+document.getElementById('reset').addEventListener('click', () => {
+  Object.assign(state, DEFAULTS); syncInputs(); apply(state);
+  note.textContent = 'Settings reset.';
+});
+
+// copy: only the values that differ from the built-in defaults, ready to paste into the embed
+const note = document.getElementById('copyNote');
+document.getElementById('copy').addEventListener('click', async () => {
+  const diff = {};
+  Object.keys(state).forEach(k => { if (k !== 'threads' && state[k] !== DEFAULTS[k]) diff[k] = typeof state[k] === 'number' ? +state[k].toFixed(3) : state[k]; });
+  if (state.threads !== 2600) diff.threads = state.threads;
+  const snippet = mode === 'photo'
+    ? `mwpSwirl(canvas, ${JSON.stringify({src: 'swirl.jpg', speed: state.speed, flow: state.flow, twist: state.twist, shimmer: state.shimmer}, null, 2)});`
+    : `mwpThreads(canvas, ${JSON.stringify(diff, null, 2)});`;
+  try { await navigator.clipboard.writeText(snippet); note.textContent = 'Copied. Paste it into the embed script.'; }
+  catch (_) {
+    note.innerHTML = 'Copy was blocked here. Select the text below and copy it:<textarea readonly id="snippet"></textarea>';
+    const ta = document.getElementById('snippet'); ta.value = snippet; ta.focus(); ta.select();
+  }
+});
+
+
+</script>
+</body>
+</html>

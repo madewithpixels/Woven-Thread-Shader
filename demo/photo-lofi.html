@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silk Thread Hero</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#EFE3DE;
+    --ink:#2A1E31;
+    --ink-soft:#5B4A60;
+    --plum:#5E2A6E;
+    --teal:#1D6F6B;
+    --panel:rgba(250,244,241,.86);
+    color-scheme: light;
+  }
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font:400 16px/1.55 "Figtree",system-ui,-apple-system,"Segoe UI",sans-serif}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:min(92vh,860px);display:flex;flex-direction:column;overflow:hidden;background:var(--paper) url("swirl.jpg") right 36%/auto 100% no-repeat}
+  .hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,rgba(239,227,222,.92) 0%,rgba(239,227,222,.55) 34%,rgba(239,227,222,0) 55%)}
+  .hero > *:not(canvas){position:relative;z-index:1}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:28px clamp(16px,5vw,72px)}
+  .mark{font-family:"Newsreader",Georgia,serif;font-size:22px;letter-spacing:.01em;color:var(--ink);text-decoration:none}
+  .mark em{font-style:italic;color:var(--plum)}
+  .nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:10px 22px;font-size:15px;border-radius:999px;background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .nav a{color:var(--ink-soft);text-decoration:none}
+  .nav a:hover{color:var(--ink)}
+
+  .copy{margin-block:auto;padding:24px clamp(16px,5vw,72px) 72px;max-width:640px}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin:0 0 20px}
+  h1{font-family:"Newsreader",Georgia,serif;font-weight:300;font-size:clamp(40px,6vw,76px);line-height:1.02;letter-spacing:-.015em;margin:0 0 24px;text-wrap:balance}
+  h1 em{font-style:italic;color:var(--plum)}
+  .lede{font-size:clamp(17px,1.4vw,19px);color:var(--ink-soft);max-width:44ch;margin:0 0 36px}
+  .actions{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+  .btn{display:inline-block;padding:15px 26px;border-radius:999px;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:500;font-size:15px}
+  .btn:hover{background:var(--plum)}
+  .link{color:var(--ink);font-weight:500;font-size:15px;text-underline-offset:4px}
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+
+  /* ---------- tuning panel (demo only) ---------- */
+  .tune-toggle{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:5;border:0;border-radius:999px;padding:10px 16px;background:var(--ink);color:var(--paper);font:500 13px "Figtree",system-ui,sans-serif;cursor:pointer}
+  .tune{position:fixed;right:16px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:5;width:min(280px,calc(100vw - 32px));padding:18px 18px 14px;border-radius:14px;background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 40px rgba(42,30,49,.16);font-size:13px}
+  .tune h2{font:600 11px "Figtree",sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 12px}
+  .row{display:grid;grid-template-columns:64px 1fr 34px;align-items:center;gap:10px;margin-bottom:8px}
+  .row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+  .row input{width:100%;accent-color:var(--plum)}
+  .tune .foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+  .tune button{border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:6px 12px;font:500 12px "Figtree",sans-serif;color:var(--ink);cursor:pointer}
+  .tune small{color:var(--ink-soft)}
+
+  .below{padding:64px clamp(16px,5vw,72px);max-width:760px}
+  .below h2{font-family:"Newsreader",Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px}
+  .below p{color:var(--ink-soft);margin:0}
+
+  @media (max-width:760px){
+    .nav ul{display:none}
+    .hero{min-height:100svh;background-size:cover}
+    .hero::after{background:linear-gradient(180deg,rgba(239,227,222,0) 30%,rgba(239,227,222,.82) 58%,rgba(239,227,222,.96) 100%)}
+    .copy{margin-top:auto;margin-bottom:0;padding-bottom:88px}
+  }
+</style>
+
+<section class="hero" id="hero">
+  <canvas id="swirl" aria-hidden="true"></canvas>
+  <nav class="nav">
+    <a class="mark" href="#hero">Voice <em>Focus</em></a>
+    <ul>
+      <li><a href="#about">About</a></li>
+      <li><a href="#about">Voice therapy</a></li>
+      <li><a href="#about">Fees</a></li>
+      <li><a href="#about">Contact</a></li>
+    </ul>
+  </nav>
+  <div class="copy">
+    <p class="eyebrow">Speech &amp; language therapy</p>
+    <h1>Find a voice that feels <em>like yours.</em></h1>
+    <p class="lede">Gender-affirming voice and communication therapy with an HCPC-registered specialist. Unhurried sessions, in person or online.</p>
+    <div class="actions">
+      <a class="btn" href="#about">Book a free consultation</a>
+      <a class="link" href="#about">How voice therapy works</a>
+    </div>
+  </div>
+</section>
+
+<section class="below" id="about">
+  <h2>Placeholder content</h2>
+  <p>Scroll back up: the animation pauses when the hero leaves the screen and starts again when it returns. Visitors with “reduce motion” switched on see a still frame.</p>
+</section>
+
+<button class="tune-toggle" id="tuneToggle" aria-expanded="false" aria-controls="tune">Tune motion</button>
+<div class="tune" id="tune" hidden>
+  <h2>Motion settings</h2>
+  <div class="row"><label for="speed">Speed</label><input id="speed" type="range" min="0" max="2" step="0.05" value="1"><output for="speed">1.00</output></div>
+  <div class="row"><label for="flow">Flow</label><input id="flow" type="range" min="0" max="2" step="0.05" value="1"><output for="flow">1.00</output></div>
+  <div class="row"><label for="twist">Twist</label><input id="twist" type="range" min="0" max="2" step="0.05" value="1"><output for="twist">1.00</output></div>
+  <div class="row"><label for="shimmer">Shimmer</label><input id="shimmer" type="range" min="0" max="2" step="0.05" value="1"><output for="shimmer">1.00</output></div>
+  <div class="foot"><small>Demo controls only</small><button id="pause" type="button">Pause</button></div>
+</div>
+
+<script>
+/* ============================================================
+   Silk thread hero — plain WebGL, no library.
+   mwpSwirl(canvas, { src, centre, focalY, ... }) returns a
+   controller with .set({speed, flow, twist, shimmer}) and .pause(bool)
+   ============================================================ */
+function mwpSwirl(canvas, opts){
+  const o = Object.assign({
+    src: 'swirl.jpg',
+    centre: [0.787, 0.215],   // hole of the ring, as fraction of image
+    focalY: 0.36,             // vertical point kept in view when cropping
+    widthShare: 0.54,         // share of a landscape hero the artwork spans
+    speed: 1, flow: 1, twist: 1, shimmer: 1,
+    maxDpr: 1.75
+  }, opts || {});
+
+  const gl = canvas.getContext('webgl', {antialias:false, premultipliedAlpha:false, alpha:false})
+          || canvas.getContext('experimental-webgl');
+  if (!gl) return null;                     // CSS background image remains as fallback
+
+  const vs = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+  const fs = `
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uRes, uImg, uOffset, uCentre, uMouse;
+uniform float uScale, uTime, uFlow, uTwist, uShimmer;
+
+float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y);
+}
+float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return v; }
+
+vec3 hueShift(vec3 c, float h){               // rotate hue in YIQ space
+  const mat3 toYIQ=mat3(.299,.596,.211,.587,-.274,-.523,.114,-.322,.312);
+  const mat3 toRGB=mat3(1.,1.,1.,.956,-.272,-1.106,.621,-.647,1.703);
+  vec3 yiq=toYIQ*c; float s=sin(h), co=cos(h);
+  yiq.yz=mat2(co,s,-s,co)*yiq.yz; return toRGB*yiq;
+}
+
+vec3 sampleArt(vec2 uv){
+  // left of the artwork: mirror-tile the plain paper strip so grain continues
+  if(uv.x < 0.0){ float x = mod(-uv.x, 0.16); uv.x = x > 0.08 ? 0.16 - x : x; }
+  return texture2D(uTex, clamp(uv, vec2(0.001), vec2(0.999))).rgb;
+}
+
+void main(){
+  vec2 p  = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  vec2 ip = (p - uOffset) / uScale + uMouse * 7.0;       // image pixels, gentle parallax
+  vec2 c  = uCentre * uImg;
+  vec2 d  = ip - c;
+  float r = length(d) / uImg.y;
+  float t = uTime;
+
+  // 1. slow twist about the ring's hole, strongest near the ring
+  float tw = uTwist * 0.02 * sin(t*0.31 - r*4.5) * exp(-r*2.0);
+  float cs = cos(tw), sn = sin(tw);
+  vec2 q = c + vec2(cs*d.x - sn*d.y, sn*d.x + cs*d.y);
+
+  // 2. breathing: a whisper of scale about the centre
+  q = c + (q - c) * (1.0 + 0.005*uTwist*sin(t*0.21));
+
+  // 3. low-frequency flow field, like silk in slow water
+  vec2 np = q / uImg.y * 2.4;
+  vec2 w = vec2(fbm(np + vec2(t*0.045, -t*0.035)),
+                fbm(np + vec2(5.2,1.3) + vec2(-t*0.04, t*0.05))) - 0.5;
+  q += w * uFlow * 16.0;
+
+  vec2 uv = q / uImg;
+  vec3 col = sampleArt(uv);
+
+  // thread mask: how far this pixel is from bare paper
+  float m = smoothstep(0.035, 0.22, distance(col, vec3(0.93,0.87,0.85)));
+
+  // 4. travelling glints and a faint iridescent drift along the threads
+  float a  = atan(d.y, d.x);
+  float ph = a*1.0 + r*13.0 - t*0.55 + fbm(np*1.6)*3.0;
+  float band = 0.5 + 0.5*sin(ph);
+  float glint = pow(band, 22.0);
+  float sheen = pow(band, 3.0);
+  col = hueShift(col, m * uShimmer * 0.09 * sin(a*2.0 + r*6.0 + t*0.27));
+  col += m * uShimmer * (glint*0.13 + sheen*0.03) * vec3(1.0, 0.96, 0.9);
+
+  gl_FragColor = vec4(clamp(col,0.,1.), 1.0);
+}`;
+
+  function sh(type, src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog,'p'); gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  const U = {}; ['uTex','uRes','uImg','uOffset','uCentre','uMouse','uScale','uTime','uFlow','uTwist','uShimmer']
+    .forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+  const tex = gl.createTexture();
+  let img = null, ready = false, running = true, visible = true;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  let t = 0, last = 0, raf = 0;
+  const mouse = {x:0,y:0,tx:0,ty:0};
+
+  function layout(){
+    const dpr = Math.min(window.devicePixelRatio || 1, o.maxDpr);
+    const W = Math.round(canvas.clientWidth * dpr), H = Math.round(canvas.clientHeight * dpr);
+    if (canvas.width !== W || canvas.height !== H){ canvas.width = W; canvas.height = H; }
+    gl.viewport(0,0,W,H);
+    if (!img) return;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const share = W / H > 1.1 ? o.widthShare : 1.0;
+    const s = Math.max(H / ih, share * W / iw);
+    const offX = W - iw * s;
+    let offY = H * 0.5 - o.focalY * ih * s;
+    offY = Math.min(0, Math.max(H - ih * s, offY));
+    gl.uniform2f(U.uRes, W, H);
+    gl.uniform2f(U.uImg, iw, ih);
+    gl.uniform2f(U.uOffset, offX, offY);
+    gl.uniform1f(U.uScale, s);
+  }
+
+  function draw(){
+    gl.uniform1f(U.uTime, t);
+    gl.uniform2f(U.uMouse, mouse.x, mouse.y);
+    gl.uniform1f(U.uFlow, o.flow);
+    gl.uniform1f(U.uTwist, o.twist);
+    gl.uniform1f(U.uShimmer, o.shimmer);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  function frame(now){
+    raf = 0;
+    const dt = last ? Math.min((now - last) / 1000, 0.05) : 0; last = now;
+    t += dt * o.speed;
+    mouse.x += (mouse.tx - mouse.x) * 0.03; mouse.y += (mouse.ty - mouse.y) * 0.03;
+    draw();
+    loop();
+  }
+  function loop(){
+    if (ready && running && visible && !reduce.matches && !raf) raf = requestAnimationFrame(frame);
+    else if (!raf) last = 0;
+  }
+  function still(){ if (ready){ layout(); draw(); } }
+
+  img = new Image();
+  img.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+    gl.uniform1i(U.uTex, 0);
+    gl.uniform2f(U.uCentre, o.centre[0], o.centre[1]);
+    ready = true; still(); loop();
+  };
+  img.src = o.src;
+
+  new ResizeObserver(still).observe(canvas);
+  new IntersectionObserver(e => { visible = e[0].isIntersecting; loop(); }).observe(canvas);
+  reduce.addEventListener?.('change', () => { still(); loop(); });
+  addEventListener('pointermove', e => {
+    const r = canvas.getBoundingClientRect();
+    mouse.tx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+    mouse.ty = ((e.clientY - r.top) / r.height - 0.5) * 2;
+  }, {passive:true});
+
+  return {
+    set(v){ Object.assign(o, v); if (!raf) still(); },
+    pause(p){ running = !p; if (p) still(); loop(); }
+  };
+}
+
+/* ---------- demo wiring ---------- */
+const swirl = mwpSwirl(document.getElementById('swirl'), { src: 'swirl.jpg' });
+['speed','flow','twist','shimmer'].forEach(id => {
+  const input = document.getElementById(id), out = input.nextElementSibling;
+  input.addEventListener('input', () => { out.value = (+input.value).toFixed(2); swirl && swirl.set({[id]: +input.value}); });
+});
+let paused = false;
+document.getElementById('pause').addEventListener('click', e => {
+  paused = !paused; e.currentTarget.textContent = paused ? 'Play' : 'Pause'; swirl && swirl.pause(paused);
+});
+const tg = document.getElementById('tuneToggle'), panel = document.getElementById('tune');
+tg.addEventListener('click', () => { panel.hidden = !panel.hidden; tg.setAttribute('aria-expanded', String(!panel.hidden)); });
+</script>
+</body>
+</html>
