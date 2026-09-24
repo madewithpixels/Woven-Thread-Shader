@@ -54,7 +54,7 @@ With `data-woven-controls` on the section, the settings panel appears on the pub
 
 - **Renderer switch:** Threads / Photo (lo-fi). The photo option needs `data-woven-fallback`.
 - **Motion:** speed, flow, twist, shimmer, mouse tilt.
-- **Path:** Loop, Waveform, Vortex, Braid or Bloom (switching morphs between them), morph time, spread and opening.
+- **Path:** Loop, Waveform, Vortex, Braid or Bloom (switching morphs between them), length, morph time, spread and opening. *Length* is remembered separately for each path (saved as `len_loop`, `len_wave`, `len_vortex`, `len_braid`, `len_bloom`), so the slider shows the current path's value.
 - **Position:** X and Y, each with a unit: % of the hero, vw or px for X; % of the hero, svh, vh or px for Y (switching unit converts the value so the shape stays put), zoom (0.25× to 3× about the shape's centre), turn, tilt and rotate (3D, in degrees), depth (perspective strength) and fog (how far strands fade into the paper).
 - **Threads:** count, thickness (strand width in CSS pixels), highlights (the thicker glossy white strands), opacity, warmth (red and orange strands), accents (gold and aqua).
 - **Performance:** max fps (the frame cap) and target fps, with a live readout of the frame rate and quality level.
@@ -97,7 +97,9 @@ Each path is a family of 3D curves, chosen to carry a section's meaning:
 | `braid` | Three coloured bundles weaving around each other | Connection, working together |
 | `bloom` | Gathering at a narrow throat, then opening out | Opening up, projecting your voice |
 
-Every thread runs its path and then carries on in a straight tail sized from the screen and zoom, so thread ends always land well off-screen, whatever the position settings. *Spread* and *Opening* adjust each path in its own way (fan and hole size for the loop, amplitude and band width for the waveform, and so on).
+Every thread runs its path and then carries on in a straight tail sized from the screen and zoom, so thread ends always land well off-screen, whatever the position settings. On the loop, the back-wall threads now come in from off-screen right, behind the band, rather than starting on the wall.
+
+*Length* (0.5 to 2.5, default 1) stretches each path: how far the loop's threads run before and after the swirl, how wide the waveform is, how many turns the vortex makes, how long the braid runs and how far the bloom's throat reaches back. *Spread* and *Opening* adjust each path in its own way (fan and hole size for the loop, amplitude and band width for the waveform, and so on).
 
 ## Performance
 

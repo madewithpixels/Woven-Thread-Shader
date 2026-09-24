@@ -20,6 +20,7 @@ function mwpThreads(canvas, opts){
     maxFps: 30,             // frame cap: the motion is slow, so 30 looks the same at half the GPU work. 0 = uncapped
     onPerf: null,           // callback({fps, level, levels, threads, points, scale, width, height, gpu}) about once a second
     path: 'loop',           // loop · wave · vortex · braid · bloom
+    len_loop: 1, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,   // Length, per path
     morphTime: 1.8,         // seconds to morph when the path changes
     focalY: 0.36, widthShare: 0.54,
     art: [1400, 2304],      // artwork frame in px (matches the photo so layouts line up)
@@ -79,7 +80,8 @@ function mwpThreads(canvas, opts){
   out vec4 vCol;
   out float vAcross, vHalf, vHl;
 
-  const float PI = 3.14159265, TAU = 6.2831853, EXT = 0.3*PI;
+  const float PI = 3.14159265, TAU = 6.2831853;
+  uniform float uLens[5];                                          // Length per path (loop, wave, vortex, braid, bloom)
   vec3 hueShift(vec3 c, float h){
     const mat3 toYIQ=mat3(.299,.596,.211,.587,-.274,-.523,.114,-.322,.312);
     const mat3 toRGB=mat3(1.,1.,1.,.956,-.272,-1.106,.621,-.647,1.703);
@@ -92,18 +94,23 @@ function mwpThreads(canvas, opts){
   float r1, r2, r3, r4, r5, r6, r8;
 
   /* ================= LOOP: the woven swirl from the photo ================= */
-  float loopPhi(float tb){ return tb < 0.5 ? mix(-EXT, PI, tb*2.0) : mix(PI, TAU + EXT, (tb - 0.5)*2.0); }
+  // back half: the wall threads arrive from off-screen right, hidden behind the purple band, then climb
+  // the hole's wall. Front half: round the fan, through the crossing and away over the top.
+  float loopPhi(float tb){
+    float extIn = 0.6*PI*uLens[0], extOut = 0.3*PI*uLens[0];
+    return tb < 0.5 ? mix(-extIn, PI, tb*2.0) : mix(PI, TAU + extOut, (tb - 0.5)*2.0);
+  }
 
   vec3 loopPos(float tb, float t){
     float phi  = loopPhi(tb);
-    float phiF = phi < 0.0 ? TAU - phi : phi;          // before the crossing, a thread arrives the way it leaves
+    float phiF = phi;
     float oF = pow(r1, 2.1), oB = pow(r1, 1.25);
     vec2  cc = vec2(0.550, 0.000);
     vec2  R  = vec2(0.400, 0.335) * (1.0 + (r2-.5)*.03);
     float th0 = 2.779 + phi;
     float breathe = 1.0 + 0.012*uTwist*sin(t*0.23);
     vec3  C  = vec3(cc + R*breathe*vec2(cos(th0), sin(th0)), sin(th0)*0.22);
-    float backW = phi < 0.0 ? 0.0 : 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
+    float backW = 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
     float o = mix(oF, oB, backW);
 
     // FRONT: ellipses that all pass through the pinch
@@ -121,12 +128,12 @@ function mwpThreads(canvas, opts){
 
     // BACK: the inside wall of the funnel
     vec2  hc = vec2(0.522, 0.188), hr = vec2(0.160, 0.150) * uHole * (1.0 + 0.02*uTwist*sin(t*0.23 + 1.0));
-    float psi = 0.52*PI + 1.58*PI*pow(clamp(phi/PI, 0., 1.), 1.25) + 0.03*uTwist*sin(t*0.17);
+    // past the hole's bottom (phi < 0) the wall carries on round towards the right, under the band
+    float psi = (phi < 0.0 ? 0.52*PI + 0.9*phi : 0.52*PI + 1.58*PI*pow(clamp(phi/PI, 0., 1.), 1.25)) + 0.03*uTwist*sin(t*0.17);
     vec3  I   = vec3(hc + hr*vec2(cos(psi), sin(psi)) + vec2(0., 0.012), -0.12);
-    float open = smoothstep(0.0, 0.10*PI, phi);
-    float ob = oB * open * (1.0 + 0.04*sin(t*0.31 + r4*6.28));
+    float ob = oB * (1.0 + 0.04*sin(t*0.31 + r4*6.28));
     vec3 Pb = mix(C, I, ob);
-    Pb.xy += vec2(-0.015, 0.05) * sin(ob*PI) * (1.0 - smoothstep(0.2*PI, 0.5*PI, phi)*.6);
+    Pb.xy += vec2(-0.015, 0.05) * sin(ob*PI) * (1.0 - smoothstep(0.2*PI, 0.5*PI, phi)*.6) * smoothstep(-0.3*PI, 0.0, phi);
 
     vec3 P = mix(Pf, Pb, backW);
     float amp = uFlow * (0.0025 + 0.009*o);
@@ -139,17 +146,17 @@ function mwpThreads(canvas, opts){
   // white strands fade out at the loop's crossing so it stays clean
   float hlFade(int s, float tb){
     if (s != 0) return 1.0;
-    float phi = loopPhi(tb), phiC = phi < 0.0 ? TAU - phi : phi;
-    float backW = phi < 0.0 ? 0.0 : 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
+    float phi = loopPhi(tb), phiC = phi;
+    float backW = 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
     return (1.0 - 0.75*exp(-pow((phiC - TAU)/(0.14*PI), 2.0))) * mix(1.0, smoothstep(0.1*PI, 0.3*PI, phi), backW);
   }
   vec4 loopCol(float tb, bool hl){
-    float phi = loopPhi(tb), phiC = phi < 0.0 ? TAU - phi : phi;
+    float phi = loopPhi(tb), phiC = phi;
     float oF = pow(r1, 2.1), oB = pow(r1, 1.25);
-    float backW = phi < 0.0 ? 0.0 : 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
+    float backW = 1.0 - smoothstep(0.85*PI, 1.15*PI, phi);
     float o = mix(oF, oB, backW);
     float x = phiC / PI;
-    float backness = phi < 0.0 ? 0.0 : 1.0 - smoothstep(0.85, 1.25, x);
+    float backness = 1.0 - smoothstep(0.85, 1.25, x);
     float ow = o + (r3-.5)*.18;
     vec3 wall = mix(vec3(.50,.76,.62), vec3(.07,.50,.34), smoothstep(.05,.40,ow));
     wall = mix(wall, vec3(.02,.36,.42), smoothstep(.55,.85,ow));
@@ -193,7 +200,7 @@ function mwpThreads(canvas, opts){
 
   /* ================= WAVE: a voiceprint flowing across ================= */
   vec3 wavePos(float tb, float t){
-    float x = mix(-1.1, 1.1, tb);                                   // relative to the pivot
+    float x = mix(-1.1, 1.1, tb) * uLens[1];                        // relative to the pivot
     float env = exp(-pow((x + 0.05)/(0.42*uFan), 2.0));             // loudest at the centre
     float o = r1;
     float ph = x*7.0 - t*0.5 + o*0.8;
@@ -204,7 +211,7 @@ function mwpThreads(canvas, opts){
     float z = (o - 0.5)*0.35*env + 0.14*env*cos(x*5.0 - t*0.4 + o*2.0);
     return vec3(uPivot + vec2(x, y*uHole), z);
   }
-  vec4 waveCol(float tb){ float x = mix(-1.1, 1.1, tb); return paletteCol(r1*0.92 + x*0.06 + (r2-.5)*0.08); }
+  vec4 waveCol(float tb){ float x = mix(-1.1, 1.1, tb) * uLens[1]; return paletteCol(r1*0.92 + x*0.06 + (r2-.5)*0.08); }
 
   /* ================= VORTEX: spiralling in to a calm centre and out ================= */
   vec3 vortexPos(float tb, float t){
@@ -212,7 +219,7 @@ function mwpThreads(canvas, opts){
     float rr = mix(0.09*uHole, 0.55*uFan, pow(abs(c), 1.3)) * (0.78 + 0.44*r1);
     rr += 1.6*pow(abs(c), 7.0);                                     // ends swing outward, so tails leave radially
     rr *= 1.0 + uFlow*0.02*sin(tb*19.0 + t*0.5 + r3*6.28);
-    float th = -0.35*PI + r2*1.05*PI + c*1.35*PI + t*0.015*uTwist;   // arms arrive from one side, leaving the other quiet
+    float th = -0.35*PI + r2*1.05*PI + c*1.35*PI*uLens[2] + t*0.015*uTwist;   // arms arrive from one side, leaving the other quiet
     vec2 p = rr*vec2(cos(th), sin(th)*0.78);
     float z = c*0.55 + 0.12*sin(th);
     return vec3(uPivot + p, z);
@@ -227,7 +234,7 @@ function mwpThreads(canvas, opts){
 
   /* ================= BRAID: three bundles weaving together ================= */
   vec3 braidPos(float tb, float t){
-    float x = mix(-1.25, 1.25, tb);
+    float x = mix(-1.25, 1.25, tb) * uLens[3];
     float b = floor(r8*3.0);
     float ph = x*5.0 - t*0.05*uTwist + b*TAU/3.0;
     float A = 0.15*uFan;
@@ -240,7 +247,7 @@ function mwpThreads(canvas, opts){
 
   /* ================= BLOOM: gathering at a narrow throat, then opening out ================= */
   vec3 hornPos(float tb, float t){
-    vec2 A0 = vec2(-1.05, 0.52), A1 = vec2(0.12, -0.08);           // throat off bottom-left, bell opening near the centre
+    vec2 A1 = vec2(0.12, -0.08), A0 = A1 + (vec2(-1.05, 0.52) - A1) * uLens[4];   // throat off bottom-left, bell opening near the centre
     vec2 ax = mix(A0, A1, tb);
     vec2 d  = normalize(A1 - A0), n = vec2(-d.y, d.x);
     ax += n*0.12*sin(tb*PI);                                        // a gentle curve along the length
@@ -406,7 +413,7 @@ function mwpThreads(canvas, opts){
     return p;
   }
   const bg = prog(bgVS, bgFS);
-  const UNI = ['uSeg','uHalf','uInstBase','uIsHl','uTailPts','uTime','uFlow','uTwist','uShimmer','uMorph','uRes','uMouse','uPivot','uPivotPx','uRot','uPaperC','uPxScale','uDepth','uFog','uTail','uFan','uHole','uOpacity','uWarm','uAccent','uHue','uSat','uBright','uThick','uDpr'];
+  const UNI = ['uSeg','uHalf','uInstBase','uIsHl','uTailPts','uTime','uFlow','uTwist','uShimmer','uMorph','uRes','uMouse','uPivot','uPivotPx','uRot','uPaperC','uPxScale','uDepth','uFog','uTail','uFan','uHole','uOpacity','uWarm','uAccent','uHue','uSat','uBright','uThick','uDpr','uLens'];
   const progs = {};                                            // compiled on first use, then cached
   function thProgram(a, b, morph){
     const key = morph ? a + '-' + b : String(a);
@@ -543,6 +550,7 @@ function mwpThreads(canvas, opts){
     gl.uniform3f(u.uRot, o.turn*D, o.tilt*D, o.rotate*D); gl.uniform1f(u.uDepth, o.depth); gl.uniform1f(u.uFog, o.fog);
     gl.uniform3fv(u.uPaperC, hex(o.paper));
     gl.uniform1f(u.uMorph, shape.m);
+    gl.uniform1fv(u.uLens, PATHS.map(p => o['len_' + p] || 1));
     gl.uniform1f(u.uFan, o.fan); gl.uniform1f(u.uHole, o.hole); gl.uniform1f(u.uOpacity, o.opacity);
     gl.uniform1f(u.uWarm, o.warmth); gl.uniform1f(u.uAccent, o.accents);
     gl.uniform1f(u.uHue, o.hue*Math.PI/180); gl.uniform1f(u.uSat, o.saturation); gl.uniform1f(u.uBright, o.brightness);

@@ -16,6 +16,7 @@
 (function(){
   var DEFAULTS = {
     path: 'loop', morphTime: 1.8,
+    len_loop: 1, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,
     speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,
     fan: 1.24, hole: 1.4,
     threads: 1500, thickness: 1.55, highlights: 1, opacity: 1.01, warmth: 0.6, accents: 2.2,
@@ -29,7 +30,7 @@
     { name: 'Motion', both: true, items: [
       ['speed', 'Speed', 0, 2, 0.05], ['flow', 'Flow', 0, 3, 0.05], ['twist', 'Twist', 0, 5, 0.05],
       ['shimmer', 'Shimmer', 0, 2, 0.05], ['parallax', 'Mouse tilt', 0, 3, 0.05, null, true] ]},
-    { name: 'Path', items: [ ['path', 'Path', 'path'], ['morphTime', 'Morph time', 0.3, 5, 0.1, 1],
+    { name: 'Path', items: [ ['path', 'Path', 'path'], ['length', 'Length', 'len'], ['morphTime', 'Morph time', 0.3, 5, 0.1, 1],
       ['fan', 'Spread', 0.5, 1.8, 0.01], ['hole', 'Opening', 0.4, 2.4, 0.01] ]},
     { name: 'Position', items: [
       ['x', 'X', 'unit'], ['y', 'Y', 'unit'], ['zoom', 'Zoom', 0.25, 3, 0.01],
@@ -312,7 +313,8 @@
       }
       function syncRow(k){
         var r = rows[k]; if (!r) return;
-        var own = bp !== 'desktop' && (Object.prototype.hasOwnProperty.call(layers[bp], k) || Object.prototype.hasOwnProperty.call(layers[bp], k + 'Unit'));
+        var kk = r.key ? r.key() : k;
+        var own = bp !== 'desktop' && (Object.prototype.hasOwnProperty.call(layers[bp], kk) || Object.prototype.hasOwnProperty.call(layers[bp], kk + 'Unit'));
         r.row.classList.toggle('wth-ovr', own);
         r.clear.hidden = !own;
         if (r.sync) r.sync();
@@ -350,6 +352,17 @@
             rows[k] = { row: row, clear: row.querySelector('.wth-clear'), sync: function(){
               btns.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-path') === state.path)); });
             } };
+          } else if (it[2] === 'len'){                                // Length: one slider, remembered separately for each path
+            row.innerHTML = '<span class="wth-lcell"><label for="' + id + '">' + it[1] + '</label>' + clearBtn + '</span>' +
+              '<input id="' + id + '" type="range" min="0.5" max="2.5" step="0.01"><output for="' + id + '"></output>';
+            (function(row){
+              var input = row.querySelector('input'), out = row.querySelector('output');
+              input.addEventListener('input', function(){ out.value = (+input.value).toFixed(2); setVal('len_' + state.path, +input.value); });
+              rows.length = { row: row, clear: row.querySelector('.wth-clear'), key: function(){ return 'len_' + state.path; }, sync: function(){
+                var v = state['len_' + state.path] || 1; input.value = v; out.value = (+v).toFixed(2);
+                input.title = 'Length of the ' + state.path + ' path';
+              } };
+            })(row);
           } else if (it[2] === 'unit'){                               // X / Y with a unit picker
             var axis = k, uk = k + 'Unit';
             row.className = 'wth-row wth-unitrow';
@@ -396,7 +409,7 @@
               });
             })(k, input, out, it[5], isColor);
           }
-          rows[k].clear.addEventListener('click', function(){ clearVal(k); });
+          rows[k].clear.addEventListener('click', function(){ clearVal(rows[k].key ? rows[k].key() : k); });
           grp.appendChild(row);
         });
         if (g.name === 'Performance'){
