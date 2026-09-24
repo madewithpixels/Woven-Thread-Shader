@@ -163,6 +163,7 @@
     var api = {
       set: function(v){ Object.assign(state, v); apply(v); },
       get: function(){ return Object.assign({}, state); },
+      blend: function(a, b, m){ threads && threads.blend(a, b, m); },   // hold a morph part-way (for scroll-driven sections)
       pause: function(p){ paused = !!p; threads && threads.pause(paused || mode !== 'threads'); swirl && swirl.pause(paused || mode !== 'photo'); }
     };
     el.__woven = api;

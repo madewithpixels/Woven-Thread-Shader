@@ -738,7 +738,9 @@ function mwpThreads(canvas, opts){
   return {
     set(v){
       if ('path' in v && v.path !== o.path) goTo(v.path);
-      Object.assign(o, v); if (!raf) still();
+      Object.assign(o, v);
+      layout();                                                  // position, zoom and quality live here, so always refresh
+      if (!raf) draw();
     },
     // for scroll-driven morphs later: show path a blended towards b by m (0..1)
     blend(a, b, m){ shape.anim = false; shape.a = idx(a); shape.b = idx(b); shape.m = Math.max(0, Math.min(1, m)); if (!raf) still(); },
@@ -915,6 +917,7 @@ function mwpThreads(canvas, opts){
     var api = {
       set: function(v){ Object.assign(state, v); apply(v); },
       get: function(){ return Object.assign({}, state); },
+      blend: function(a, b, m){ threads && threads.blend(a, b, m); },   // hold a morph part-way (for scroll-driven sections)
       pause: function(p){ paused = !!p; threads && threads.pause(paused || mode !== 'threads'); swirl && swirl.pause(paused || mode !== 'photo'); }
     };
     el.__woven = api;
