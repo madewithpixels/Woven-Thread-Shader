@@ -7,7 +7,8 @@
      data-woven-settings  = {...}    (optional JSON from the panel's Copy button)
      data-woven-fallback  = <url>    (optional: the swirl image asset URL, used for
                                       the lo-fi photo version and as a still fallback)
-     data-woven-controls             (optional: shows the Tune button + panel)
+     data-woven-controls             (optional: shows the settings panel; it floats behind a Tune
+                                      button, or sits inside any element marked data-woven-panel)
 
    The panel can also be opened on any page by adding ?tune to the URL.
    ============================================================ */
@@ -78,6 +79,14 @@
 .wth-pathset{display:flex;flex-wrap:wrap;gap:4px}\
 .wth-pathset button{border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:4px 9px;font:500 12px system-ui,sans-serif;color:#2a1e31;cursor:pointer}\
 .wth-pathset button[aria-pressed="true"]{background:#2a1e31;color:#f6eeea;border-color:#2a1e31}\
+.wth-panel.wth-inline{position:static;width:auto;max-height:none;margin-top:32px;backdrop-filter:none;-webkit-backdrop-filter:none;background:#f7efeb;border:1px solid rgba(42,30,49,.1);box-shadow:none}\
+.wth-inline .wth-head{padding:16px 20px;border-bottom:1px solid rgba(42,30,49,.1)}\
+.wth-inline .wth-seg{max-width:280px}\
+.wth-inline .wth-body{display:flex;flex-wrap:wrap;column-gap:28px;padding:8px 20px 4px;overflow:visible}\
+.wth-inline .wth-group{flex:1 1 210px;max-width:330px;border-top:0}\
+.wth-inline .wth-foot{padding:12px 20px}\
+.wth-inline .wth-foot button{flex:0 0 auto;padding:8px 16px}\
+.wth-inline .wth-note{padding:0 20px 14px}\
 .wth-note{margin:0;padding:0 16px 12px;min-height:16px;font-size:12px;color:#1d6f6b}\
 .wth-note textarea{width:100%;height:100px;margin-top:6px;font:11px/1.4 ui-monospace,Menlo,monospace;border-radius:6px;border:1px solid rgba(42,30,49,.2);padding:6px}\
 .wth-panel :focus-visible,.wth-toggle:focus-visible{outline:2px solid #1d6f6b;outline-offset:2px}\
@@ -271,7 +280,10 @@
         btn.setAttribute('aria-expanded', String(!panel.hidden));
         btn.textContent = panel.hidden ? 'Tune hero' : 'Close';
       });
-      document.body.appendChild(panel); document.body.appendChild(btn);
+      // an element marked data-woven-panel hosts the panel inline, always open; otherwise it floats behind a Tune button
+      var host = document.querySelector('[data-woven-panel]');
+      if (host){ panel.classList.add('wth-inline'); panel.hidden = false; host.appendChild(panel); }
+      else { document.body.appendChild(panel); document.body.appendChild(btn); }
     }
   }
 
