@@ -320,25 +320,25 @@ function mwpThreads(canvas, opts){
   const o = Object.assign({
     threads: 1500,          // number of threads
     segments: 180,          // points per half-loop (quality ladder scales this)
-    thickness: 1.55,        // strand width in CSS pixels
-    highlights: 1,          // amount of thicker white strands
+    thickness: 1.35,        // strand width in CSS pixels
+    highlights: 1.9,          // amount of thicker white strands
     targetFps: 60,          // adaptive quality: 0 = off
     maxFps: 30,             // frame cap: the motion is slow, so 30 looks the same at half the GPU work. 0 = uncapped
     onPerf: null,           // callback({fps, level, levels, threads, points, scale, width, height, gpu}) about once a second
     path: 'loop',           // loop · wave · vortex · braid · bloom
-    len_loop: 1, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,   // Length, per path
+    len_loop: 0.85, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,   // Length, per path
     morphTime: 1.8,         // seconds to morph when the path changes
     focalY: 0.36, widthShare: 0.54,
     art: [1400, 2304],      // artwork frame in px (matches the photo so layouts line up)
-    speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,   // motion
-    fan: 1.24, hole: 1.4,                                    // shape
-    opacity: 1.01, warmth: 0.6, accents: 2.2,                // threads
+    speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 2.85,   // motion
+    fan: 1.11, hole: 1.42,                                    // shape
+    opacity: 1.02, warmth: 0.68, accents: 2.7,                // threads
     hue: 0, saturation: 0.83, brightness: 1,                 // colour
     paper: '#efe1dc',                                        // background
-    x: 0, y: 0, zoom: 0.91,                                  // position offset of the shape's centre; zoom about that centre
+    x: 0.1, y: 0.13, zoom: 0.91,                                  // position offset of the shape's centre; zoom about that centre
     xUnit: 'hero', yUnit: 'hero',                            // x: hero (share of its width) · vw · px;  y: hero · svh · vh · px
-    turn: 0, tilt: 0, rotate: 0,                             // 3D rotation in degrees
-    depth: 0.6, fog: 0.6,                                    // perspective strength, and how far strands fade into the paper
+    turn: -27, tilt: -6, rotate: 10,                             // 3D rotation in degrees
+    depth: 1.46, fog: 2,                                    // perspective strength, and how far strands fade into the paper
     maxDpr: 2
   }, opts || {});
 
@@ -945,32 +945,32 @@ const GROUPS = [
     ['flow',     'Flow',     0, 3,   0.05, 1.9],
     ['twist',    'Twist',    0, 5,   0.05, 3],
     ['shimmer',  'Shimmer',  0, 2,   0.05, 1.05],
-    ['parallax', 'Mouse tilt', 0, 3, 0.05, 1.45, null, true],
+    ['parallax', 'Mouse tilt', 0, 3, 0.05, 2.85, null, true],
   ]},
   { name: 'Path', open: true, items: [
     ['path',      'Path',       0, 0, 0, 'loop', null, false, 'path'],
     ['length',    'Length',     0.5, 2.5, 0.01, 1, null, false, 'len'],
     ['morphTime', 'Morph time', 0.3, 5, 0.1, 1.8, v => (+v).toFixed(1) + 's'],
-    ['fan',  'Spread',  0.5, 1.8, 0.01, 1.24],
-    ['hole', 'Opening', 0.4, 2.4, 0.01, 1.4],
+    ['fan',  'Spread',  0.5, 1.8, 0.01, 1.11],
+    ['hole', 'Opening', 0.4, 2.4, 0.01, 1.42],
   ]},
   { name: 'Position', open: true, items: [
-    ['x',      'X',      -1, 1, 0.01, 0],
-    ['y',      'Y',      -1, 1, 0.01, 0],
+    ['x',      'X',      -1, 1, 0.01, 0.1],
+    ['y',      'Y',      -1, 1, 0.01, 0.13],
     ['zoom',   'Zoom',   0.25, 3, 0.01, 0.91],
-    ['turn',   'Turn',   -70, 70, 1, 0, v => (+v).toFixed(0) + '°'],
-    ['tilt',   'Tilt',   -70, 70, 1, 0, v => (+v).toFixed(0) + '°'],
-    ['rotate', 'Rotate', -180, 180, 1, 0, v => (+v).toFixed(0) + '°'],
-    ['depth',  'Depth',  0, 1.5, 0.01, 0.6],
-    ['fog',    'Fog',    0, 2, 0.01, 0.6],
+    ['turn',   'Turn',   -70, 70, 1, -27, v => (+v).toFixed(0) + '°'],
+    ['tilt',   'Tilt',   -70, 70, 1, -6, v => (+v).toFixed(0) + '°'],
+    ['rotate', 'Rotate', -180, 180, 1, 10, v => (+v).toFixed(0) + '°'],
+    ['depth',  'Depth',  0, 1.5, 0.01, 1.46],
+    ['fog',    'Fog',    0, 2, 0.01, 2],
   ]},
   { name: 'Threads', open: true, items: [
     ['threads', 'Count',   400, 4000, 100, narrow ? 1000 : 1500, v => v.toFixed(0)],
-    ['thickness',  'Thickness', 0.4, 3, 0.05, 1.55],
-    ['highlights', 'Highlights', 0, 4, 0.1, 1],
-    ['opacity', 'Opacity', 0.3, 1.6,  0.01, 1.01],
-    ['warmth',  'Warmth', 0, 1, 0.01, 0.6],
-    ['accents', 'Accents', 0, 3,  0.05, 2.2],
+    ['thickness',  'Thickness', 0.4, 3, 0.05, 1.35],
+    ['highlights', 'Highlights', 0, 4, 0.1, 1.9],
+    ['opacity', 'Opacity', 0.3, 1.6,  0.01, 1.02],
+    ['warmth',  'Warmth', 0, 1, 0.01, 0.68],
+    ['accents', 'Accents', 0, 3,  0.05, 2.7],
   ]},
   { name: 'Colour', open: false, items: [
     ['hue',        'Hue shift',  -180, 180, 1, 0, v => v.toFixed(0) + '°'],
@@ -989,7 +989,7 @@ const GROUPS = [
 ];
 const DEFAULTS = {};
 GROUPS.forEach(g => g.items.forEach(([k,,,,,d,,,type]) => { if (type !== 'len') DEFAULTS[k] = d; }));
-['loop','wave','vortex','braid','bloom'].forEach(p => DEFAULTS['len_' + p] = 1);
+['loop','wave','vortex','braid','bloom'].forEach(p => DEFAULTS['len_' + p] = 1); DEFAULTS.len_loop = 0.85;
 const state = Object.assign({}, DEFAULTS);
 
 const perfOut = document.createElement('p');

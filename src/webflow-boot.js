@@ -16,13 +16,13 @@
 (function(){
   var DEFAULTS = {
     path: 'loop', morphTime: 1.8,
-    len_loop: 1, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,
-    speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,
-    fan: 1.24, hole: 1.4,
-    threads: 1500, thickness: 1.55, highlights: 1, opacity: 1.01, warmth: 0.6, accents: 2.2,
+    len_loop: 0.85, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,
+    speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 2.85,
+    fan: 1.11, hole: 1.42,
+    threads: 1500, thickness: 1.35, highlights: 1.9, opacity: 1.02, warmth: 0.68, accents: 2.7,
     targetFps: 60, maxFps: 30,
     hue: 0, saturation: 0.83, brightness: 1, paper: '#efe1dc',
-    x: 0, y: 0, xUnit: 'hero', yUnit: 'hero', zoom: 0.91, turn: 0, tilt: 0, rotate: 0, depth: 0.6, fog: 0.6,
+    x: 0.1, y: 0.13, xUnit: 'hero', yUnit: 'hero', zoom: 0.91, turn: -27, tilt: -6, rotate: 10, depth: 1.46, fog: 2,
     focalY: 0.36, widthShare: 0.54
   };
 

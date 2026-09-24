@@ -14,25 +14,25 @@ function mwpThreads(canvas, opts){
   const o = Object.assign({
     threads: 1500,          // number of threads
     segments: 180,          // points per half-loop (quality ladder scales this)
-    thickness: 1.55,        // strand width in CSS pixels
-    highlights: 1,          // amount of thicker white strands
+    thickness: 1.35,        // strand width in CSS pixels
+    highlights: 1.9,          // amount of thicker white strands
     targetFps: 60,          // adaptive quality: 0 = off
     maxFps: 30,             // frame cap: the motion is slow, so 30 looks the same at half the GPU work. 0 = uncapped
     onPerf: null,           // callback({fps, level, levels, threads, points, scale, width, height, gpu}) about once a second
     path: 'loop',           // loop · wave · vortex · braid · bloom
-    len_loop: 1, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,   // Length, per path
+    len_loop: 0.85, len_wave: 1, len_vortex: 1, len_braid: 1, len_bloom: 1,   // Length, per path
     morphTime: 1.8,         // seconds to morph when the path changes
     focalY: 0.36, widthShare: 0.54,
     art: [1400, 2304],      // artwork frame in px (matches the photo so layouts line up)
-    speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,   // motion
-    fan: 1.24, hole: 1.4,                                    // shape
-    opacity: 1.01, warmth: 0.6, accents: 2.2,                // threads
+    speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 2.85,   // motion
+    fan: 1.11, hole: 1.42,                                    // shape
+    opacity: 1.02, warmth: 0.68, accents: 2.7,                // threads
     hue: 0, saturation: 0.83, brightness: 1,                 // colour
     paper: '#efe1dc',                                        // background
-    x: 0, y: 0, zoom: 0.91,                                  // position offset of the shape's centre; zoom about that centre
+    x: 0.1, y: 0.13, zoom: 0.91,                                  // position offset of the shape's centre; zoom about that centre
     xUnit: 'hero', yUnit: 'hero',                            // x: hero (share of its width) · vw · px;  y: hero · svh · vh · px
-    turn: 0, tilt: 0, rotate: 0,                             // 3D rotation in degrees
-    depth: 0.6, fog: 0.6,                                    // perspective strength, and how far strands fade into the paper
+    turn: -27, tilt: -6, rotate: 10,                             // 3D rotation in degrees
+    depth: 1.46, fog: 2,                                    // perspective strength, and how far strands fade into the paper
     maxDpr: 2
   }, opts || {});
 
