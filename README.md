@@ -14,7 +14,7 @@ src/
   swirl-lofi.js      mwpSwirl(): the photo renderer (WebGL1)
   webflow-boot.js    Wires both renderers onto a Webflow element and adds the Tune panel
 webflow/
-  footer-code.html          Paste-ready <script> for Webflow custom code (~41 KB, under the 50 KB limit)
+  footer-code.html          Paste-ready <script> for Webflow custom code (~46 KB, under the 50 KB limit; the hosted script avoids the limit entirely)
   woven-thread-hero.js      The same bundle, unminified and readable
   woven-thread-hero.min.js  The same bundle, minified
   test-page.html            Local page that mimics a Webflow hero, for testing the embed
@@ -56,7 +56,7 @@ With `data-woven-controls` on the section, the settings panel appears on the pub
 - **Motion:** speed, flow, twist, shimmer, mouse tilt.
 - **Path:** Loop, Waveform, Vortex, Braid or Bloom (switching morphs between them), morph time, spread and opening.
 - **Position:** X and Y (as a share of the viewport, so ±1 moves the shape a full screen), zoom (0.25× to 3× about the shape's centre), turn, tilt and rotate (3D, in degrees), depth (perspective strength) and fog (how far strands fade into the paper).
-- **Threads:** count, count on phones, thickness (strand width in CSS pixels), highlights (the thicker glossy white strands), opacity, warmth (red and orange strands), accents (gold and aqua).
+- **Threads:** count, thickness (strand width in CSS pixels), highlights (the thicker glossy white strands), opacity, warmth (red and orange strands), accents (gold and aqua).
 - **Performance:** max fps (the frame cap) and target fps, with a live readout of the frame rate and quality level.
 - **Colour:** hue shift, saturation, brightness, paper colour.
 - **Photo framing** (photo mode only): shift y, art width.
@@ -64,6 +64,18 @@ With `data-woven-controls` on the section, the settings panel appears on the pub
 **Copy** puts the settings you've changed on the clipboard as JSON. Paste that as the value of `data-woven-settings`, then publish. **Reset** returns to whatever is saved in that attribute.
 
 To tune the live site without showing the button to visitors, remove `data-woven-controls` and add `?tune` to the page URL instead, e.g. `https://example.com/?tune`.
+
+### Breakpoints
+
+Every setting can be overridden per breakpoint, using Webflow's own: **Desktop** (the base), **Tablet** (991px and below), **Mobile landscape** (767px and below) and **Mobile portrait** (479px and below). Overrides cascade down just like styles in the Designer: a Tablet value also applies to both mobile sizes unless they set their own.
+
+The panel edits whichever breakpoint the window is currently at, so resize the browser (or use its device mode) to edit another. Chips at the top show the active breakpoint and how many overrides each has; settings overridden at the current breakpoint are marked, with a × to clear that override. **Copy** exports every breakpoint in one value, for example:
+
+```json
+{"zoom":0.9,"tablet":{"x":0.2},"landscape":{"y":0.3},"portrait":{"path":"braid","zoom":1.4}}
+```
+
+Phones draw at most 1,000 threads unless Mobile landscape sets its own count. (Older settings using `mobileThreads` still work.)
 
 ### Testing on real machines
 
