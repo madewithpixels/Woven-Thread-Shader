@@ -604,6 +604,23 @@ function mwpThreads(canvas, opts){
   // a point along the strip, including the straight tails that run off-screen
   vec3 pointAt(float idx, float t, out float tb){
     float N = float(uSeg), T = float(uTailPts), B = N - T;
+    if (uHalf == 2){                                                // whole thread in one pass (no join)
+      float N2 = 2.0*N, B2 = N2 - 2.0*T;
+      if (idx < T){
+        tb = 0.0;
+        vec3 q0 = bodyView(0.0, t), q1 = bodyView(0.004, t);
+        vec2 dir = normalize(q0.xy - q1.xy + 1e-6);
+        return vec3(q0.xy + dir * (uTail / persp(q0.z)) * (T - idx)/T, q0.z);
+      }
+      if (idx > N2 - T){
+        tb = 1.0;
+        vec3 q0 = bodyView(1.0, t), q1 = bodyView(0.996, t);
+        vec2 dir = normalize(q0.xy - q1.xy + 1e-6);
+        return vec3(q0.xy + dir * (uTail / persp(q0.z)) * (idx - (N2 - T))/T, q0.z);
+      }
+      tb = (idx - T)/B2;
+      return bodyView(tb, t);
+    }
     if (uHalf == 0){
       if (idx < T){                                                 // tail in
         tb = 0.0;
@@ -821,9 +838,13 @@ function mwpThreads(canvas, opts){
     gl.uniform1f(u.uFan, o.fan); gl.uniform1f(u.uHole, o.hole); gl.uniform1f(u.uOpacity, o.opacity);
     gl.uniform1f(u.uWarm, o.warmth); gl.uniform1f(u.uAccent, o.accents);
     gl.uniform1f(u.uHue, o.hue*Math.PI/180); gl.uniform1f(u.uSat, o.saturation); gl.uniform1f(u.uBright, o.brightness);
-    const verts = (seg + 1) * 2;                             // one triangle strip per thread
     const hlCount = Math.round(threads * 0.008 * o.highlights);  // extra white strands, drawn on top
-    for (let half = 0; half < 2; half++){                      // back of the loop first, then the front
+    // only the loop needs two passes (its inner wall must sit behind its front). Every other path
+    // draws each thread in one pass, so there's no join to show mid-screen.
+    const loopShown = shape.a === 0 || (morphing && shape.b === 0);
+    const halves = loopShown ? [0, 1] : [2];
+    const verts = (loopShown ? seg + 1 : 2*seg + 1) * 2;     // one triangle strip per thread
+    for (const half of halves){
       gl.uniform1i(u.uHalf, half);
       gl.uniform1i(u.uIsHl, 0); gl.uniform1i(u.uInstBase, 0);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, verts, threads);
@@ -873,7 +894,9 @@ function mwpThreads(canvas, opts){
   return {
     set(v){
       if ('path' in v && v.path !== o.path) goTo(v.path);
-      Object.assign(o, v); if (!raf) still();
+      Object.assign(o, v);
+      layout();                                                  // position, zoom and quality live here, so always refresh
+      if (!raf) draw();
     },
     // for scroll-driven morphs later: show path a blended towards b by m (0..1)
     blend(a, b, m){ shape.anim = false; shape.a = idx(a); shape.b = idx(b); shape.m = Math.max(0, Math.min(1, m)); if (!raf) still(); },
