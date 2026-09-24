@@ -13,19 +13,26 @@
    ============================================================ */
 (function(){
   var DEFAULTS = {
+    path: 'loop', morphTime: 1.8,
     speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,
     fan: 1.24, hole: 1.4,
     threads: 1500, mobileThreads: 1000, thickness: 1.55, highlights: 1, opacity: 1.01, warmth: 0.6, accents: 2.2,
     targetFps: 60, maxFps: 30,
     hue: 0, saturation: 0.83, brightness: 1, paper: '#efe1dc',
-    zoom: 0.91, shiftX: 0, focalY: 0.36, widthShare: 0.54
+    x: 0, y: 0, zoom: 0.91, turn: 0, tilt: 0, rotate: 0, depth: 0.6, fog: 0.6,
+    focalY: 0.36, widthShare: 0.54
   };
 
   var GROUPS = [
     { name: 'Motion', both: true, items: [
       ['speed', 'Speed', 0, 2, 0.05], ['flow', 'Flow', 0, 3, 0.05], ['twist', 'Twist', 0, 5, 0.05],
       ['shimmer', 'Shimmer', 0, 2, 0.05], ['parallax', 'Mouse tilt', 0, 3, 0.05, null, true] ]},
-    { name: 'Shape', items: [ ['fan', 'Fan size', 0.7, 1.5, 0.01], ['hole', 'Hole size', 0.6, 2, 0.01] ]},
+    { name: 'Path', items: [ ['path', 'Path', 'path'], ['morphTime', 'Morph time', 0.3, 5, 0.1, 1],
+      ['fan', 'Spread', 0.5, 1.8, 0.01], ['hole', 'Opening', 0.4, 2.4, 0.01] ]},
+    { name: 'Position', items: [
+      ['x', 'X', -1, 1, 0.01], ['y', 'Y', -1, 1, 0.01], ['zoom', 'Zoom', 0.25, 3, 0.01],
+      ['turn', 'Turn', -70, 70, 1, 0], ['tilt', 'Tilt', -70, 70, 1, 0], ['rotate', 'Rotate', -180, 180, 1, 0],
+      ['depth', 'Depth', 0, 1.5, 0.01], ['fog', 'Fog', 0, 2, 0.01] ]},
     { name: 'Threads', items: [
       ['threads', 'Count', 400, 4000, 100, 0], ['mobileThreads', 'On phones', 400, 3000, 100, 0],
       ['thickness', 'Thickness', 0.4, 3, 0.05], ['highlights', 'Highlights', 0, 4, 0.1],
@@ -34,11 +41,11 @@
       ['hue', 'Hue shift', -180, 180, 1, 0], ['saturation', 'Saturation', 0, 1.6, 0.01],
       ['brightness', 'Brightness', 0.6, 1.3, 0.01], ['paper', 'Paper', 'color'] ]},
     { name: 'Performance', items: [ ['maxFps', 'Max fps', 0, 60, 5, 'fps'], ['targetFps', 'Target fps', 0, 60, 5, 'fps'] ]},
-    { name: 'Framing', both: true, items: [
-      ['zoom', 'Zoom', 0.6, 1.6, 0.01, 2, true], ['shiftX', 'Shift x', -0.4, 0.4, 0.01, 2, true],
+    { name: 'Photo framing', photo: true, items: [
       ['focalY', 'Shift y', 0, 1, 0.01], ['widthShare', 'Art width', 0.3, 1, 0.01] ]}
   ];
   var SWIRL_KEYS = ['speed', 'flow', 'twist', 'shimmer', 'focalY', 'widthShare'];
+  var PATH_NAMES = [['loop', 'Loop'], ['wave', 'Waveform'], ['vortex', 'Vortex'], ['braid', 'Braid'], ['bloom', 'Bloom']];
 
   var CSS = '\
 .wth-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:-1;pointer-events:none}\
@@ -66,6 +73,11 @@
 .wth-foot button.wth-primary{background:#2a1e31;color:#f6eeea;border-color:#2a1e31}\
  .wth-perf{margin:2px 0 4px;font-size:12px;color:#5b4a60;font-variant-numeric:tabular-nums}\
 .wth-stats{position:fixed;left:12px;bottom:12px;z-index:2147483000;margin:0;padding:8px 10px;border-radius:8px;background:rgba(20,14,24,.82);color:#f6eeea;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none}\
+.wth-pathrow{grid-template-columns:76px 1fr}\
+.wth-pathrow .wth-lbl{align-self:start;padding-top:5px}\
+.wth-pathset{display:flex;flex-wrap:wrap;gap:4px}\
+.wth-pathset button{border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:4px 9px;font:500 12px system-ui,sans-serif;color:#2a1e31;cursor:pointer}\
+.wth-pathset button[aria-pressed="true"]{background:#2a1e31;color:#f6eeea;border-color:#2a1e31}\
 .wth-note{margin:0;padding:0 16px 12px;min-height:16px;font-size:12px;color:#1d6f6b}\
 .wth-note textarea{width:100%;height:100px;margin-top:6px;font:11px/1.4 ui-monospace,Menlo,monospace;border-radius:6px;border:1px solid rgba(42,30,49,.2);padding:6px}\
 .wth-panel :focus-visible,.wth-toggle:focus-visible{outline:2px solid #1d6f6b;outline-offset:2px}\
@@ -172,11 +184,21 @@
       var inputs = {};
       GROUPS.forEach(function(g){
         var grp = document.createElement('div');
-        grp.className = 'wth-group'; if (g.both) grp.setAttribute('data-both', '');
+        grp.className = 'wth-group'; if (g.both) grp.setAttribute('data-both', ''); if (g.photo) grp.setAttribute('data-photo', '');
         grp.innerHTML = '<h3>' + g.name + '</h3>';
         g.items.forEach(function(it){
           var k = it[0], id = 'wth-' + k, row = document.createElement('div');
           row.className = 'wth-row';
+          if (it[2] === 'path'){                                    // one button per path
+            row.className = 'wth-row wth-pathrow';
+            row.innerHTML = '<span class="wth-lbl" id="wth-lbl-path">' + it[1] + '</span><div class="wth-pathset" role="group" aria-labelledby="wth-lbl-path">' +
+              PATH_NAMES.map(function(p){ return '<button type="button" data-path="' + p[0] + '" aria-pressed="' + (p[0] === state.path) + '">' + p[1] + '</button>'; }).join('') + '</div>';
+            var btns = row.querySelectorAll('[data-path]');
+            var syncP = function(){ btns.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-path') === state.path)); }); };
+            btns.forEach(function(b){ b.addEventListener('click', function(){ state.path = b.getAttribute('data-path'); syncP(); apply({ path: state.path }); }); });
+            inputs[k] = { sync: syncP };
+            grp.appendChild(row); return;
+          }
           var isColor = it[2] === 'color';
           if (it[6]) row.setAttribute('data-threads-only', '');
           row.innerHTML = '<label for="' + id + '">' + it[1] + '</label>' + (isColor
@@ -204,7 +226,7 @@
         if (m === 'photo' && !fallback) return;
         mode = m;
         segBtns.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === m)); });
-        body.querySelectorAll('.wth-group').forEach(function(d){ d.hidden = m === 'photo' && !d.hasAttribute('data-both'); });
+        body.querySelectorAll('.wth-group').forEach(function(d){ d.hidden = m === 'photo' ? !(d.hasAttribute('data-both') || d.hasAttribute('data-photo')) : d.hasAttribute('data-photo'); });
         body.querySelectorAll('[data-threads-only]').forEach(function(r){ r.hidden = m === 'photo'; });
         cThreads.hidden = m !== 'threads'; cSwirl.hidden = m !== 'photo';
         if (m === 'photo') startSwirl();
@@ -225,7 +247,7 @@
       panel.querySelector('[data-act="reset"]').addEventListener('click', function(){
         Object.assign(state, DEFAULTS, saved);
         Object.keys(inputs).forEach(function(k){
-          var r = inputs[k]; r.input.value = state[k]; if (r.out) r.out.value = fmt(state[k], r.dp);
+          var r = inputs[k]; if (r.sync){ r.sync(); return; } r.input.value = state[k]; if (r.out) r.out.value = fmt(state[k], r.dp);
         });
         apply(state); note.textContent = 'Back to the settings saved on this element.';
       });
