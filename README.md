@@ -14,7 +14,7 @@ src/
   swirl-lofi.js      mwpSwirl(): the photo renderer (WebGL1)
   webflow-boot.js    Wires both renderers onto a Webflow element and adds the Tune panel
 webflow/
-  footer-code.html          Paste-ready <script> for Webflow custom code (~32 KB, under the 50 KB limit)
+  footer-code.html          Paste-ready <script> for Webflow custom code (~33 KB, under the 50 KB limit)
   woven-thread-hero.js      The same bundle, unminified and readable
   woven-thread-hero.min.js  The same bundle, minified
   test-page.html            Local page that mimics a Webflow hero, for testing the embed
@@ -56,7 +56,7 @@ With `data-woven-controls` on the section, a **Tune hero** button appears at the
 - **Motion:** speed, flow, twist, shimmer, mouse tilt.
 - **Shape:** fan size, hole size.
 - **Threads:** count, count on phones, thickness (strand width in CSS pixels), highlights (the thicker glossy white strands), opacity, warmth (red and orange strands), accents (gold and aqua).
-- **Performance:** target fps, with a live readout of the frame rate and quality level.
+- **Performance:** max fps (the frame cap) and target fps, with a live readout of the frame rate and quality level.
 - **Colour:** hue shift, saturation, brightness, paper colour.
 - **Framing:** zoom, shift x, shift y, art width.
 
@@ -64,9 +64,15 @@ With `data-woven-controls` on the section, a **Tune hero** button appears at the
 
 To tune the live site without showing the button to visitors, remove `data-woven-controls` and add `?tune` to the page URL instead, e.g. `https://example.com/?tune`.
 
+### Testing on real machines
+
+Add `?perf` to the URL (e.g. `https://voice-focus.webflow.io/?perf`) to show a small stats box in the bottom-left corner: frame rate, cap and target, quality level, threads × points being drawn, canvas size and render scale, and the GPU name when the browser reveals it. `?perf` is visitor-safe to leave working; it only shows when asked for. Combine with `?tune` as `?tune&perf`.
+
 ## Performance
 
-The hero measures its own frame rate once a second. If it falls below 90% of the target (default 50 fps), it steps down a quality ladder, cheapest visual loss first:
+**Frame cap.** The hero draws at most 30 frames a second by default (*Max fps*; 0 = uncapped). The motion is slow, so 30 looks almost the same as 60 and halves the GPU work, which matters for battery, fan noise and older laptops. Frames are scheduled on a running clock, so the cap holds exactly on 60, 75, 120 and 144 Hz screens alike.
+
+**Quality ladder.** The hero measures its own frame rate once a second. If it falls below 90% of the target (default 60 fps, but never more than the cap, so effectively 30), it steps down a quality ladder, cheapest visual loss first:
 
 1. **Resolution:** render scale 100% → 85% → 75% … 50%. Every strand is filled per pixel, so this is the biggest cost, and on retina screens the drop is barely visible.
 2. **Thread count:** 100% → 85% → 70% … 40%.
@@ -79,7 +85,7 @@ Other savings built in: no MSAA (strands draw their own soft edges), one instanc
 ## Behaviour and fallbacks
 
 - The animation pauses while the hero is off screen, and visitors with *reduce motion* switched on see a still frame.
-- Phones get fewer threads (1,600 by default; set with *On phones*), and resolution is capped at 1.5× for performance.
+- Phones get fewer threads (1,000 by default, against 1,500 on desktop; set with *On phones*), and resolution is capped at 1.5× for performance.
 - No WebGL2 → the lo-fi photo version runs instead (if `data-woven-fallback` is set).
 - No WebGL at all, or the image fails to load → the section shows the swirl photo as a plain background image.
 - The photo version loads the image with CORS. Webflow's asset CDN normally allows this; if the photo renderer ever stays blank, the plain background image still shows.

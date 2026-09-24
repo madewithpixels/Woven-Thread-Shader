@@ -14,9 +14,9 @@
 (function(){
   var DEFAULTS = {
     speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,
-    fan: 1.24, hole: 1.09,
+    fan: 1.24, hole: 1.4,
     threads: 1500, mobileThreads: 1000, thickness: 1.55, highlights: 1, opacity: 1.01, warmth: 0.6, accents: 2.2,
-    targetFps: 60,
+    targetFps: 60, maxFps: 30,
     hue: 0, saturation: 0.83, brightness: 1, paper: '#efe1dc',
     zoom: 0.91, shiftX: 0, focalY: 0.36, widthShare: 0.54
   };
@@ -25,7 +25,7 @@
     { name: 'Motion', both: true, items: [
       ['speed', 'Speed', 0, 2, 0.05], ['flow', 'Flow', 0, 3, 0.05], ['twist', 'Twist', 0, 5, 0.05],
       ['shimmer', 'Shimmer', 0, 2, 0.05], ['parallax', 'Mouse tilt', 0, 3, 0.05, null, true] ]},
-    { name: 'Shape', items: [ ['fan', 'Fan size', 0.7, 1.5, 0.01], ['hole', 'Hole size', 0.6, 1.4, 0.01] ]},
+    { name: 'Shape', items: [ ['fan', 'Fan size', 0.7, 1.5, 0.01], ['hole', 'Hole size', 0.6, 2, 0.01] ]},
     { name: 'Threads', items: [
       ['threads', 'Count', 400, 4000, 100, 0], ['mobileThreads', 'On phones', 400, 3000, 100, 0],
       ['thickness', 'Thickness', 0.4, 3, 0.05], ['highlights', 'Highlights', 0, 4, 0.1],
@@ -33,7 +33,7 @@
     { name: 'Colour', items: [
       ['hue', 'Hue shift', -180, 180, 1, 0], ['saturation', 'Saturation', 0, 1.6, 0.01],
       ['brightness', 'Brightness', 0.6, 1.3, 0.01], ['paper', 'Paper', 'color'] ]},
-    { name: 'Performance', items: [ ['targetFps', 'Target fps', 0, 60, 5, 'fps'] ]},
+    { name: 'Performance', items: [ ['maxFps', 'Max fps', 0, 60, 5, 'fps'], ['targetFps', 'Target fps', 0, 60, 5, 'fps'] ]},
     { name: 'Framing', both: true, items: [
       ['zoom', 'Zoom', 0.6, 1.6, 0.01, 2, true], ['shiftX', 'Shift x', -0.4, 0.4, 0.01, 2, true],
       ['focalY', 'Shift y', 0, 1, 0.01], ['widthShare', 'Art width', 0.3, 1, 0.01] ]}
@@ -65,6 +65,7 @@
 .wth-foot button{flex:1;border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:7px 8px;font:500 12px system-ui,sans-serif;color:#2a1e31;cursor:pointer}\
 .wth-foot button.wth-primary{background:#2a1e31;color:#f6eeea;border-color:#2a1e31}\
  .wth-perf{margin:2px 0 4px;font-size:12px;color:#5b4a60;font-variant-numeric:tabular-nums}\
+.wth-stats{position:fixed;left:12px;bottom:12px;z-index:2147483000;margin:0;padding:8px 10px;border-radius:8px;background:rgba(20,14,24,.82);color:#f6eeea;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none}\
 .wth-note{margin:0;padding:0 16px 12px;min-height:16px;font-size:12px;color:#1d6f6b}\
 .wth-note textarea{width:100%;height:100px;margin-top:6px;font:11px/1.4 ui-monospace,Menlo,monospace;border-radius:6px;border:1px solid rgba(42,30,49,.2);padding:6px}\
 .wth-panel :focus-visible,.wth-toggle:focus-visible{outline:2px solid #1d6f6b;outline-offset:2px}\
@@ -89,6 +90,7 @@
     var fallback = el.getAttribute('data-woven-fallback');
     var ctrlAttr = el.getAttribute('data-woven-controls');
     var showControls = (ctrlAttr !== null && ctrlAttr !== 'false') || /[?&]tune(=|&|$)/.test(location.search);
+    var showPerf = /[?&]perf(=|&|$)/.test(location.search);        // ?perf: live stats overlay for testing on real machines
     var narrow = function(){ return window.matchMedia('(max-width: 760px)').matches; };
 
     injectCSS();
@@ -108,11 +110,23 @@
     el.insertBefore(cSwirl, el.firstChild); el.insertBefore(cThreads, el.firstChild);
 
     function threadOpts(){
-      var o = Object.assign({ maxDpr: 1.5, onPerf: function(p){ if (perfOut) perfOut.textContent = p.fps + ' fps · ' + (p.level ? 'quality stepped down ' + p.level + ' of ' + p.levels : 'full quality'); } }, state);
+      var o = Object.assign({ maxDpr: 1.5, onPerf: function(p){
+        var q = p.level ? 'quality stepped down ' + p.level + ' of ' + p.levels : 'full quality';
+        if (perfOut) perfOut.textContent = p.fps + ' fps · ' + q;
+        if (perfBox) perfBox.textContent =
+          p.fps + ' fps (cap ' + (state.maxFps || 'off') + ', target ' + (state.targetFps || 'off') + ')\n' + q + '\n' +
+          p.threads + ' threads × ' + p.points + ' points\n' +
+          p.width + '×' + p.height + ' px at ' + p.scale.toFixed(2) + '× (screen ' + (window.devicePixelRatio || 1) + '×)\n' +
+          (p.gpu || 'GPU name hidden by browser');
+      } }, state);
       o.threads = narrow() ? Math.min(state.mobileThreads, state.threads) : state.threads;
       return o;
     }
-    var threads = null, perfOut = null;
+    var threads = null, perfOut = null, perfBox = null;
+    if (showPerf){
+      perfBox = document.createElement('pre'); perfBox.className = 'wth-stats'; perfBox.textContent = 'Measuring…';
+      document.body.appendChild(perfBox);
+    }
     try { threads = mwpThreads(cThreads, threadOpts()); } catch (e) { console.warn('[woven]', e); }
     var swirl = null, mode = threads ? 'threads' : 'photo', paused = false;
 

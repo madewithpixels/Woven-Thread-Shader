@@ -18,11 +18,12 @@ function mwpThreads(canvas, opts){
     thickness: 1.55,        // strand width in CSS pixels
     highlights: 1,          // amount of thicker white strands
     targetFps: 60,          // adaptive quality: 0 = off
-    onPerf: null,           // callback({fps, level, levels}) about once a second
+    maxFps: 30,             // frame cap: the motion is slow, so 30 looks the same at half the GPU work. 0 = uncapped
+    onPerf: null,           // callback({fps, level, levels, threads, points, scale, width, height, gpu}) about once a second
     focalY: 0.36, widthShare: 0.54,
     art: [1400, 2304],      // artwork frame in px (matches the photo so layouts line up)
     speed: 1, flow: 1.9, twist: 3, shimmer: 1.05, parallax: 1.45,   // motion
-    fan: 1.24, hole: 1.09,                                   // shape
+    fan: 1.24, hole: 1.4,                                    // shape
     opacity: 1.01, warmth: 0.6, accents: 2.2,                // threads
     hue: 0, saturation: 0.83, brightness: 1,                 // colour
     paper: '#efe1dc',                                        // background
@@ -252,7 +253,7 @@ function mwpThreads(canvas, opts){
   gl.bindVertexArray(gl.createVertexArray());
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  let t = 0, last = 0, raf = 0, running = true, visible = true, resumed = true;
+  let t = 0, last = 0, raf = 0, running = true, visible = true, resumed = true, due = 0;
   const mouse = {x:0,y:0,tx:0,ty:0};
   let L = {W:1,H:1,s:1,ox:0,oy:0,dpr:1};
 
@@ -280,12 +281,22 @@ function mwpThreads(canvas, opts){
     if (perf.time < 1 || now - perf.changedAt < 1500) return;   // 1s windows, ignoring a settle period after changes
     const fps = perf.frames / perf.time;
     perf.frames = 0; perf.time = 0;
-    const target = o.targetFps;
+    const target = o.maxFps > 0 && o.targetFps > 0 ? Math.min(o.targetFps, o.maxFps) : o.targetFps;
     if (target > 0){
       if (fps < target * 0.9) setLevel(perf.level + 1, now);
       else if (fps >= target * 0.97 && perf.level > 0 && now - perf.changedAt > 6000 && now > perf.holdUntil) setLevel(perf.level - 1, now);
     } else if (perf.level) setLevel(0, now);
-    o.onPerf && o.onPerf({ fps: Math.round(fps), level: perf.level, levels: LADDER.length - 1 });
+    o.onPerf && o.onPerf(Object.assign({ fps: Math.round(fps) }, stats()));
+  }
+
+  // what's actually being drawn right now, for the readouts
+  let gpu = '';
+  try { const ext = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } catch (e) {}
+  function stats(){
+    const q = LADDER[perf.level];
+    return { level: perf.level, levels: LADDER.length - 1,
+      threads: Math.max(200, Math.round(o.threads * q[1])), points: Math.max(48, Math.round(o.segments * q[2])),
+      scale: L.dpr, width: L.W, height: L.H, gpu: gpu };
   }
 
   function layout(){
@@ -332,17 +343,25 @@ function mwpThreads(canvas, opts){
 
   function frame(now){
     raf = 0;
+    // frame cap: skip display refreshes until the next frame is due. Frames are scheduled on a
+    // running clock (not "time since last frame"), so a 30 cap gives 30 on 60, 75, 144Hz... screens
+    if (o.maxFps > 0){
+      const interval = 1000 / o.maxFps;
+      if (due && now < due - 2){ loop(); return; }           // 2ms tolerance for timer jitter
+      due = (due && now - due < interval) ? due + interval : now + interval;   // resync after a stall
+    } else due = 0;
     const raw = last ? (now-last)/1000 : 0; last = now;
     if (raw && !resumed) measure(raw, now);
     resumed = false;
     const dt = Math.min(raw, 0.05);
     t += dt*o.speed;
-    mouse.x += (mouse.tx-mouse.x)*0.03; mouse.y += (mouse.ty-mouse.y)*0.03;
+    const ease = 1 - Math.pow(0.97, dt*60);                    // same easing speed at any frame rate
+    mouse.x += (mouse.tx-mouse.x)*ease; mouse.y += (mouse.ty-mouse.y)*ease;
     draw(); loop();
   }
   function loop(){
     if (running && visible && !reduce.matches && !raf) raf = requestAnimationFrame(frame);
-    else if (!raf){ last = 0; resumed = true; }
+    else if (!raf){ last = 0; due = 0; resumed = true; }
   }
   function still(){ layout(); draw(); }
 
@@ -359,7 +378,7 @@ function mwpThreads(canvas, opts){
   return {
     set(v){ Object.assign(o, v); if (!raf) still(); },
     get(){ return Object.assign({}, o); },
-    quality(){ return { level: perf.level, levels: LADDER.length - 1 }; },
+    quality(){ return stats(); },
     pause(p){ running = !p; if (p) still(); loop(); },
     time(v){ t = v; still(); }
   };
