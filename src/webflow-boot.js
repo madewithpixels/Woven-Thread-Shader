@@ -21,7 +21,7 @@
     threads: 1500, thickness: 1.55, highlights: 1, opacity: 1.01, warmth: 0.6, accents: 2.2,
     targetFps: 60, maxFps: 30,
     hue: 0, saturation: 0.83, brightness: 1, paper: '#efe1dc',
-    x: 0, y: 0, zoom: 0.91, turn: 0, tilt: 0, rotate: 0, depth: 0.6, fog: 0.6,
+    x: 0, y: 0, xUnit: 'hero', yUnit: 'hero', zoom: 0.91, turn: 0, tilt: 0, rotate: 0, depth: 0.6, fog: 0.6,
     focalY: 0.36, widthShare: 0.54
   };
 
@@ -32,7 +32,7 @@
     { name: 'Path', items: [ ['path', 'Path', 'path'], ['morphTime', 'Morph time', 0.3, 5, 0.1, 1],
       ['fan', 'Spread', 0.5, 1.8, 0.01], ['hole', 'Opening', 0.4, 2.4, 0.01] ]},
     { name: 'Position', items: [
-      ['x', 'X', -1, 1, 0.01], ['y', 'Y', -1, 1, 0.01], ['zoom', 'Zoom', 0.25, 3, 0.01],
+      ['x', 'X', 'unit'], ['y', 'Y', 'unit'], ['zoom', 'Zoom', 0.25, 3, 0.01],
       ['turn', 'Turn', -70, 70, 1, 0], ['tilt', 'Tilt', -70, 70, 1, 0], ['rotate', 'Rotate', -180, 180, 1, 0],
       ['depth', 'Depth', 0, 1.5, 0.01], ['fog', 'Fog', 0, 2, 0.01] ]},
     { name: 'Threads', items: [
@@ -56,6 +56,20 @@
     { id: 'portrait',  label: 'Mobile portrait',  max: 479 }
   ];
   var PHONE_MAX_THREADS = 1000;                             // phones draw at most this many threads unless told otherwise
+  // X/Y units: slider range and step for each, and how many CSS px one unit is
+  var UNIT_RANGE = { hero: [-1, 1, 0.01], vw: [-100, 100, 0.5], vh: [-100, 100, 0.5], svh: [-100, 100, 0.5], px: [-1600, 1600, 1] };
+  var UNITS = { x: [['hero', '%'], ['vw', 'vw'], ['px', 'px']], y: [['hero', '%'], ['svh', 'svh'], ['vh', 'vh'], ['px', 'px']] };   // % = share of the hero
+  var svhCss = 0;
+  function measureSvh(){
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none';
+    document.body.appendChild(d); svhCss = d.offsetHeight || innerHeight; d.remove();
+  }
+  function fmtUnit(v, unit){
+    if (unit === 'hero') return Math.round(v*100) + '%';
+    if (unit === 'px') return Math.round(v) + '';
+    return (+v).toFixed(1);
+  }
   var PATH_NAMES = [['loop', 'Loop'], ['wave', 'Waveform'], ['vortex', 'Vortex'], ['braid', 'Braid'], ['bloom', 'Bloom']];
 
   var CSS = '\
@@ -107,7 +121,35 @@
 .wth-ovr label,.wth-ovr .wth-lbl{color:#5e2a6e;font-weight:600}\
 .wth-clear{flex:0 0 auto;width:16px;height:16px;padding:0;border:0;border-radius:50%;background:#5e2a6e;color:#fff;font:600 11px/16px system-ui,sans-serif;cursor:pointer}\
 .wth-clear[hidden]{display:none}\
+.wth-titlebar{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid rgba(42,30,49,.1);user-select:none;-webkit-user-select:none}\
+.wth-titlebar strong{flex:1;font:600 11px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#5b4a60}\
+.wth-titlebar button{border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:4px 10px;font:500 12px system-ui,sans-serif;color:#2a1e31;cursor:pointer}\
+.wth-titlebar button[data-act="min"]{width:28px;padding:4px 0}\
+.wth-titlebar button[hidden]{display:none}\
+.wth-grip{display:none;width:10px;height:14px;background-image:radial-gradient(circle,#8a7a8e 1.2px,transparent 1.4px);background-size:5px 5px}\
+.wth-float .wth-titlebar{cursor:grab;touch-action:none}\
+.wth-float .wth-titlebar:active{cursor:grabbing}\
+.wth-float .wth-grip{display:block}\
+.wth-panel.wth-float{width:min(340px,calc(100vw - 16px));max-height:calc(100vh - 16px)}\
+.wth-min .wth-head,.wth-min .wth-body,.wth-min .wth-foot,.wth-min .wth-note{display:none}\
+.wth-panel.wth-min{max-height:none}\
+.wth-unitrow{grid-template-columns:76px 1fr 44px 54px}\
+.wth-unitrow select{width:100%;font:12px system-ui,sans-serif;color:#2a1e31;background:transparent;border:1px solid rgba(42,30,49,.2);border-radius:6px;padding:2px 4px}\
 .wth-note{padding:0 20px 14px}\
+.wth-titlebar{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid rgba(42,30,49,.1);user-select:none;-webkit-user-select:none}\
+.wth-titlebar strong{flex:1;font:600 11px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#5b4a60}\
+.wth-titlebar button{border:1px solid rgba(42,30,49,.2);background:transparent;border-radius:999px;padding:4px 10px;font:500 12px system-ui,sans-serif;color:#2a1e31;cursor:pointer}\
+.wth-titlebar button[data-act="min"]{width:28px;padding:4px 0}\
+.wth-titlebar button[hidden]{display:none}\
+.wth-grip{display:none;width:10px;height:14px;background-image:radial-gradient(circle,#8a7a8e 1.2px,transparent 1.4px);background-size:5px 5px}\
+.wth-float .wth-titlebar{cursor:grab;touch-action:none}\
+.wth-float .wth-titlebar:active{cursor:grabbing}\
+.wth-float .wth-grip{display:block}\
+.wth-panel.wth-float{width:min(340px,calc(100vw - 16px));max-height:calc(100vh - 16px)}\
+.wth-min .wth-head,.wth-min .wth-body,.wth-min .wth-foot,.wth-min .wth-note{display:none}\
+.wth-panel.wth-min{max-height:none}\
+.wth-unitrow{grid-template-columns:76px 1fr 44px 54px}\
+.wth-unitrow select{width:100%;font:12px system-ui,sans-serif;color:#2a1e31;background:transparent;border:1px solid rgba(42,30,49,.2);border-radius:6px;padding:2px 4px}\
 .wth-note{margin:0;padding:0 16px 12px;min-height:16px;font-size:12px;color:#1d6f6b}\
 .wth-note textarea{width:100%;height:100px;margin-top:6px;font:11px/1.4 ui-monospace,Menlo,monospace;border-radius:6px;border:1px solid rgba(42,30,49,.2);padding:6px}\
 .wth-panel :focus-visible,.wth-toggle:focus-visible{outline:2px solid #1d6f6b;outline-offset:2px}\
@@ -245,6 +287,8 @@
       var panel = document.createElement('aside');
       panel.className = 'wth-panel'; panel.hidden = true; panel.setAttribute('aria-label', 'Hero settings');
       panel.innerHTML =
+        '<div class="wth-titlebar"><span class="wth-grip" aria-hidden="true"></span><strong>Hero settings</strong>' +
+        '<button type="button" data-act="float">Pop out</button><button type="button" data-act="min" aria-label="Minimise" aria-expanded="true">–</button></div>' +
         '<div class="wth-head"><div class="wth-seg" role="group" aria-label="Renderer">' +
         '<button type="button" data-mode="threads">Threads</button><button type="button" data-mode="photo">Photo (lo-fi)</button>' +
         '</div><div class="wth-bpbar"><div class="wth-bps" aria-label="Breakpoints"></div><p class="wth-hint"></p></div></div>' +
@@ -263,11 +307,12 @@
       }
       function clearVal(k){
         delete layers[bp][k];
+        if (k === 'x' || k === 'y') delete layers[bp][k + 'Unit'];
         refresh();
       }
       function syncRow(k){
         var r = rows[k]; if (!r) return;
-        var own = bp !== 'desktop' && Object.prototype.hasOwnProperty.call(layers[bp], k);
+        var own = bp !== 'desktop' && (Object.prototype.hasOwnProperty.call(layers[bp], k) || Object.prototype.hasOwnProperty.call(layers[bp], k + 'Unit'));
         r.row.classList.toggle('wth-ovr', own);
         r.clear.hidden = !own;
         if (r.sync) r.sync();
@@ -275,7 +320,7 @@
       }
       function updateBpUi(){
         bpsEl.innerHTML = BPS.map(function(b){
-          var n = Object.keys(layers[b.id]).length;
+          var n = Object.keys(layers[b.id]).filter(function(k){ return !/Unit$/.test(k) || !((k.replace('Unit', '')) in layers[b.id]); }).length;
           return '<span' + (b.id === bp ? ' aria-current="true"' : '') + '>' + b.label + (b.max ? ' ≤' + b.max : '') +
             (n ? '<em>' + n + '</em>' : '') + '</span>';
         }).join('');
@@ -305,6 +350,36 @@
             rows[k] = { row: row, clear: row.querySelector('.wth-clear'), sync: function(){
               btns.forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-path') === state.path)); });
             } };
+          } else if (it[2] === 'unit'){                               // X / Y with a unit picker
+            var axis = k, uk = k + 'Unit';
+            row.className = 'wth-row wth-unitrow';
+            row.innerHTML = '<span class="wth-lcell"><label for="' + id + '">' + it[1] + '</label>' + clearBtn + '</span>' +
+              '<input id="' + id + '" type="range"><output for="' + id + '"></output>' +
+              '<select aria-label="' + it[1] + ' unit" title="% is a share of the hero\'s size">' + UNITS[axis].map(function(u){ return '<option value="' + u[0] + '">' + u[1] + '</option>'; }).join('') + '</select>';
+            (function(k, axis, uk, row){
+              var input = row.querySelector('input'), out = row.querySelector('output'), sel = row.querySelector('select');
+              var cssPer = function(unit){                              // CSS px per one unit
+                if (!svhCss) measureSvh();
+                if (unit === 'hero') return axis === 'x' ? el.clientWidth : el.clientHeight;
+                if (unit === 'vw') return innerWidth/100;
+                if (unit === 'vh') return innerHeight/100;
+                if (unit === 'svh') return svhCss/100;
+                return 1;
+              };
+              input.addEventListener('input', function(){ out.value = fmtUnit(+input.value, state[uk]); setVal(k, +input.value); });
+              sel.addEventListener('change', function(){
+                // convert the current offset so the shape stays where it is
+                var from = state[uk], to = sel.value, r = UNIT_RANGE[to];
+                var v = state[k] * cssPer(from) / cssPer(to);
+                v = Math.max(r[0], Math.min(r[1], Math.round(v / r[2]) * r[2]));
+                layers[bp][uk] = to; setVal(k, v);
+              });
+              rows[k] = { row: row, clear: row.querySelector('.wth-clear'), sync: function(){
+                var unit = state[uk], r = UNIT_RANGE[unit] || UNIT_RANGE.hero;
+                input.min = r[0]; input.max = r[1]; input.step = r[2]; input.value = state[k];
+                out.value = fmtUnit(state[k], unit); sel.value = unit;
+              } };
+            })(k, axis, uk, row);
           } else {
             var isColor = it[2] === 'color';
             if (it[6]) row.setAttribute('data-threads-only', '');
@@ -380,11 +455,84 @@
         panel.hidden = !panel.hidden;
         btn.setAttribute('aria-expanded', String(!panel.hidden));
         btn.textContent = panel.hidden ? 'Tune hero' : 'Close';
+        clampPos();
       });
-      // an element marked data-woven-panel hosts the panel inline, always open; otherwise it floats behind a Tune button
+      /* ----- placement: docked inside [data-woven-panel], or a floating window you can drag -----
+         Where it floats, whether it's minimised and whether it's popped out are remembered per browser. */
       var host = document.querySelector('[data-woven-panel]');
-      if (host){ panel.classList.add('wth-inline'); panel.hidden = false; host.appendChild(panel); }
-      else { document.body.appendChild(panel); document.body.appendChild(btn); }
+      var floatBtn = panel.querySelector('[data-act="float"]'), minBtn = panel.querySelector('[data-act="min"]');
+      var bar = panel.querySelector('.wth-titlebar');
+      var prefs = {};
+      try { prefs = JSON.parse(localStorage.getItem('wth-panel') || '{}'); } catch (e) {}
+      function savePrefs(){ try { localStorage.setItem('wth-panel', JSON.stringify(prefs)); } catch (e) {} }
+      function clampPos(){
+        if (!panel.classList.contains('wth-float')) return;
+        var r = panel.getBoundingClientRect();
+        var l = Math.max(8, Math.min(innerWidth - r.width - 8, r.left)), t = Math.max(8, Math.min(innerHeight - 44, r.top));
+        panel.style.left = l + 'px'; panel.style.top = t + 'px';
+        panel.style.maxHeight = Math.max(44, innerHeight - t - 8) + 'px';      // never runs off the bottom; the body scrolls
+      }
+      function setFloating(on){
+        if (on){
+          panel.classList.remove('wth-inline'); panel.classList.add('wth-float');
+          if (panel.parentNode !== document.body) document.body.appendChild(panel);
+          var w = Math.min(340, innerWidth - 16);
+          panel.style.left = (prefs.left != null ? prefs.left : innerWidth - w - 16) + 'px';
+          panel.style.top = (prefs.top != null ? prefs.top : 16) + 'px';
+          panel.style.right = 'auto'; panel.style.bottom = 'auto';
+          panel.hidden = false;
+          clampPos();
+        } else if (host){
+          panel.classList.remove('wth-float'); panel.classList.add('wth-inline');
+          panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = panel.style.maxHeight = '';
+          host.appendChild(panel); panel.hidden = false;
+        }
+        floatBtn.textContent = on ? 'Dock' : 'Pop out';
+        floatBtn.hidden = !host;                                   // nowhere to dock without a host element
+        btn.hidden = !!host || on;                                  // the Tune button only matters with no host
+        prefs.floating = on; savePrefs();
+      }
+      function setMin(on){
+        panel.classList.toggle('wth-min', on);
+        minBtn.textContent = on ? '+' : '–';
+        minBtn.setAttribute('aria-label', on ? 'Expand' : 'Minimise');
+        minBtn.setAttribute('aria-expanded', String(!on));
+        prefs.min = on; savePrefs();
+        clampPos();
+      }
+      floatBtn.addEventListener('click', function(){ setFloating(!panel.classList.contains('wth-float')); });
+      minBtn.addEventListener('click', function(){ setMin(!panel.classList.contains('wth-min')); });
+
+      // drag by the title bar while floating
+      var drag = null;
+      bar.addEventListener('pointerdown', function(e){
+        if (!panel.classList.contains('wth-float') || e.target.closest('button')) return;
+        var r = panel.getBoundingClientRect();
+        drag = { x: e.clientX, y: e.clientY, l: r.left, t: r.top };
+        bar.setPointerCapture(e.pointerId); e.preventDefault();
+      });
+      bar.addEventListener('pointermove', function(e){
+        if (!drag) return;
+        panel.style.left = (drag.l + e.clientX - drag.x) + 'px';
+        panel.style.top = (drag.t + e.clientY - drag.y) + 'px';
+        clampPos();
+      });
+      function endDrag(){
+        if (!drag) return; drag = null;
+        var r = panel.getBoundingClientRect(); prefs.left = Math.round(r.left); prefs.top = Math.round(r.top); savePrefs();
+      }
+      bar.addEventListener('pointerup', endDrag); bar.addEventListener('pointercancel', endDrag);
+      window.addEventListener('resize', clampPos, { passive: true });
+
+      document.body.appendChild(btn);
+      if (host && !prefs.floating){ setFloating(false); }
+      else if (host){ setFloating(true); }
+      else {                                                        // no host: floating, opened by the Tune button
+        panel.classList.add('wth-float'); document.body.appendChild(panel);
+        floatBtn.hidden = true; panel.hidden = true;
+        if (prefs.left != null){ panel.style.left = prefs.left + 'px'; panel.style.top = prefs.top + 'px'; panel.style.right = panel.style.bottom = 'auto'; }
+      }
+      if (prefs.min) setMin(true);
     }
   }
 

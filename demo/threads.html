@@ -341,7 +341,8 @@ function mwpThreads(canvas, opts){
     opacity: 1.01, warmth: 0.6, accents: 2.2,                // threads
     hue: 0, saturation: 0.83, brightness: 1,                 // colour
     paper: '#efe1dc',                                        // background
-    x: 0, y: 0, zoom: 0.91,                                  // position: x/y as a share of the viewport, zoom about the shape's centre
+    x: 0, y: 0, zoom: 0.91,                                  // position offset of the shape's centre; zoom about that centre
+    xUnit: 'hero', yUnit: 'hero',                            // x: hero (share of its width) · vw · px;  y: hero · svh · vh · px
     turn: 0, tilt: 0, rotate: 0,                             // 3D rotation in degrees
     depth: 0.6, fog: 0.6,                                    // perspective strength, and how far strands fade into the paper
     maxDpr: 2
@@ -798,6 +799,26 @@ function mwpThreads(canvas, opts){
       scale: L.dpr, width: L.W, height: L.H, gpu: gpu };
   }
 
+  // x/y offsets in the chosen unit, converted to canvas pixels
+  let svhPx = 0;
+  function measureSvh(){
+    try {
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none';
+      document.body.appendChild(d); svhPx = d.offsetHeight || innerHeight; d.remove();
+    } catch (e) { svhPx = innerHeight; }
+  }
+  measureSvh();
+  function offsetPx(v, unit, size, dpr, axis){
+    switch (unit){
+      case 'vw':  return v/100 * innerWidth * dpr;
+      case 'vh':  return v/100 * innerHeight * dpr;
+      case 'svh': return v/100 * (svhPx || innerHeight) * dpr;
+      case 'px':  return v * dpr;
+      default:    return v * size;                                // share of the hero's width or height
+    }
+  }
+
   function layout(){
     const dpr = Math.max(0.5, Math.min(devicePixelRatio || 1, o.maxDpr) * LADDER[perf.level][0]);
     const W = Math.round(canvas.clientWidth*dpr), H = Math.round(canvas.clientHeight*dpr);
@@ -808,7 +829,7 @@ function mwpThreads(canvas, opts){
     let oy = H*0.5 - o.focalY*ih*s; oy = Math.min(0, Math.max(H - ih*s, oy));
     const ox = W - iw*s;
     // the shape's centre on screen, moved by x/y as a share of the viewport; zoom scales about it
-    const pivotPx = [ox + PIVOT[0]*ih*s + o.x*W, oy + PIVOT[1]*ih*s + o.y*H];
+    const pivotPx = [ox + PIVOT[0]*ih*s + offsetPx(o.x, o.xUnit, W, dpr, 'x'), oy + PIVOT[1]*ih*s + offsetPx(o.y, o.yUnit, H, dpr, 'y')];
     const pxScale = ih*s*o.zoom;
     L = {W, H, s, dpr, pivotPx, pxScale, tail: 2.5*Math.hypot(W, H)/pxScale};
   }
@@ -883,6 +904,7 @@ function mwpThreads(canvas, opts){
   thProgram(shape.a, shape.a, false);
   still(); loop();
   new ResizeObserver(still).observe(canvas);
+  addEventListener('resize', () => { measureSvh(); if (!raf) still(); else layout(); }, {passive:true});   // vw/svh offsets follow the window
   new IntersectionObserver(e => { visible = e[0].isIntersecting; loop(); }).observe(canvas);
   reduce.addEventListener?.('change', () => { still(); loop(); });
   document.addEventListener('visibilitychange', () => { resumed = true; perf.frames = 0; perf.time = 0; });   // don't count time spent in a background tab

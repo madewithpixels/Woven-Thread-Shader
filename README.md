@@ -14,7 +14,7 @@ src/
   swirl-lofi.js      mwpSwirl(): the photo renderer (WebGL1)
   webflow-boot.js    Wires both renderers onto a Webflow element and adds the Tune panel
 webflow/
-  footer-code.html          Paste-ready <script> for Webflow custom code (~46 KB, under the 50 KB limit; the hosted script avoids the limit entirely)
+  footer-code.html          Paste-ready <script> for Webflow custom code (~53 KB: now over Webflow's 50 KB custom-code limit, so load the hosted script instead, as below)
   woven-thread-hero.js      The same bundle, unminified and readable
   woven-thread-hero.min.js  The same bundle, minified
   test-page.html            Local page that mimics a Webflow hero, for testing the embed
@@ -55,7 +55,7 @@ With `data-woven-controls` on the section, the settings panel appears on the pub
 - **Renderer switch:** Threads / Photo (lo-fi). The photo option needs `data-woven-fallback`.
 - **Motion:** speed, flow, twist, shimmer, mouse tilt.
 - **Path:** Loop, Waveform, Vortex, Braid or Bloom (switching morphs between them), morph time, spread and opening.
-- **Position:** X and Y (as a share of the viewport, so ±1 moves the shape a full screen), zoom (0.25× to 3× about the shape's centre), turn, tilt and rotate (3D, in degrees), depth (perspective strength) and fog (how far strands fade into the paper).
+- **Position:** X and Y, each with a unit: % of the hero, vw or px for X; % of the hero, svh, vh or px for Y (switching unit converts the value so the shape stays put), zoom (0.25× to 3× about the shape's centre), turn, tilt and rotate (3D, in degrees), depth (perspective strength) and fog (how far strands fade into the paper).
 - **Threads:** count, thickness (strand width in CSS pixels), highlights (the thicker glossy white strands), opacity, warmth (red and orange strands), accents (gold and aqua).
 - **Performance:** max fps (the frame cap) and target fps, with a live readout of the frame rate and quality level.
 - **Colour:** hue shift, saturation, brightness, paper colour.
@@ -64,6 +64,10 @@ With `data-woven-controls` on the section, the settings panel appears on the pub
 **Copy** puts the settings you've changed on the clipboard as JSON. Paste that as the value of `data-woven-settings`, then publish. **Reset** returns to whatever is saved in that attribute.
 
 To tune the live site without showing the button to visitors, remove `data-woven-controls` and add `?tune` to the page URL instead, e.g. `https://example.com/?tune`.
+
+### Moving the panel
+
+The panel has a title bar. **Pop out** turns it into a floating window you can drag by the title bar, so the hero stays in view while you tune; **Dock** puts it back in the `data-woven-panel` element. **–** minimises it to the title bar. Whether it's popped out, where it sits and whether it's minimised are remembered in that browser. A floating panel never runs off the screen; its settings scroll instead.
 
 ### Breakpoints
 
