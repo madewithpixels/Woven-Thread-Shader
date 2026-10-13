@@ -14,11 +14,16 @@ src/
   swirl-lofi.js      mwpSwirl(): the photo renderer (WebGL1)
   webflow-boot.js    Wires both renderers onto a Webflow element and adds the Tune panel
 webflow/
+  poster-landscape.webp     Still frame of the hero (1920 × 1080), shown when it can't animate
+  poster-portrait.webp      The same for phones (645 × 1398)
   footer-code.html          Paste-ready <script> for Webflow custom code (~53 KB: now over Webflow's 50 KB custom-code limit, so load the hosted script instead, as below)
   woven-thread-hero.js      The same bundle, unminified and readable
   woven-thread-hero.min.js  The same bundle, minified
   test-page.html            Local page that mimics a Webflow hero, for testing the embed
   swirl.jpg                 Artwork used by the test page
+tools/
+  render-posters.py         Re-renders the two posters from the shader at the current defaults
+  poster.html               Page the script renders in
 ```
 
 To preview locally, serve the folder rather than opening the files directly, so the image loads over http:
@@ -40,6 +45,8 @@ python3 -m http.server 8000
    | `data-woven-fallback` | the swirl.jpg asset URL |
    | `data-woven-controls` | *(leave empty; remove it before launch)* |
    | `data-woven-settings` | `{}`, or the JSON you copy from the panel |
+   | `data-woven-poster` | URL of `poster-landscape.webp` |
+   | `data-woven-poster-portrait` | URL of `poster-portrait.webp` (used at 767px and narrower) |
 
 3. **Paste `webflow/footer-code.html`** into Page settings > Custom code > Before `</body>` tag. You can use Site settings instead if the hero appears on several pages.
 4. **Publish** to the staging domain. The script doesn't run in the Designer canvas.
@@ -115,12 +122,38 @@ If it's back at the target for 6 seconds, it tries one step up. If that step fai
 
 Other savings built in: no MSAA (strands draw their own soft edges), one instanced draw per half-loop, and the white strands are a separate batch of about 0.8% of the threads.
 
+## PageSpeed: paint-safe start (v1.5)
+
+PageSpeed Insights, Lighthouse and Googlebot load the page in headless Chrome with no graphics card. WebGL still works there, but on the CPU (SwiftShader), so an animated hero blocks the main thread for minutes and wrecks the score. The fix is the same one used in Faulty-terminal v1.10:
+
+- **Software fallback.** Before starting, the script reads the WebGL renderer name. If it's a software renderer (SwiftShader, llvmpipe, softpipe, "software", Microsoft Basic Render) or there's no WebGL at all, nothing is rendered: the element shows the still poster, gets the class `wth-static`, and no animation loop runs. Real visitors whose GPU is blocklisted get the poster too, which beats a few frames a second.
+- **Deferred start.** On a real GPU the renderer is built after the page's `load` event, once the browser is idle (at most 1.5s later), and fades in over 0.9s. The shader compile and first frames no longer compete with the page's first paint.
+
+Lighthouse 12 on the test page (headless, no GPU):
+
+| | Score | TBT | Speed Index |
+|---|---|---|---|
+| Mobile, before | 60 | 139.8 s | 21.6 s |
+| Mobile, v1.5 | **100** | 10 ms | 1.3 s |
+| Desktop, before | 60 | 38.0 s | 13.0 s |
+| Desktop, v1.5 | **100** | 0 ms | 0.4 s |
+
+Either part can be switched off per element with `data-woven-software-fallback="false"` or `data-woven-defer-start="false"`, or for the whole site:
+
+```html
+<script>window.WovenThreadHeroConfig = { softwareFallback: false, deferStart: false };</script>
+```
+
+The element fires a `woven:ready` event when it's set up, with `detail.static` true for the poster. In static mode `el.__woven.static` is `true` and its methods do nothing.
+
+**Keep the posters current.** They're rendered from the shader at the default settings. After changing the defaults, re-render them (`python3 tools/render-posters.py`, see the script for setup), commit, and bump the poster URLs.
+
 ## Behaviour and fallbacks
 
 - The animation pauses while the hero is off screen, and visitors with *reduce motion* switched on see a still frame.
 - Phones get fewer threads (1,000 by default, against 1,500 on desktop; set with *On phones*), and resolution is capped at 1.5× for performance.
 - No WebGL2 → the lo-fi photo version runs instead (if `data-woven-fallback` is set).
-- No WebGL at all, or the image fails to load → the section shows the swirl photo as a plain background image.
+- No WebGL at all, or a software renderer → the poster (or, without one, the swirl photo) as a plain background image.
 - The photo version loads the image with CORS. Webflow's asset CDN normally allows this; if the photo renderer ever stays blank, the plain background image still shows.
 
 ## Script API

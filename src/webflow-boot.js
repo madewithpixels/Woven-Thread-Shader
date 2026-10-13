@@ -10,6 +10,11 @@
                                       the lo-fi photo version and as a still fallback)
      data-woven-controls             (optional: shows the settings panel; it floats behind a Tune
                                       button, or sits inside any element marked data-woven-panel)
+     data-woven-poster    = <url>    (optional: still image shown when the hero can't animate —
+                                      software WebGL such as PageSpeed/Lighthouse, or no WebGL)
+     data-woven-poster-portrait = <url>  (optional: the same for screens 767px wide and narrower)
+     data-woven-software-fallback="false" / data-woven-defer-start="false"   (opt out per element;
+                                      or site-wide with window.WovenThreadHeroConfig = {...})
 
    The panel can also be opened on any page by adding ?tune to the URL.
    ============================================================ */
@@ -74,7 +79,7 @@
   var PATH_NAMES = [['loop', 'Loop'], ['wave', 'Waveform'], ['vortex', 'Vortex'], ['braid', 'Braid'], ['bloom', 'Bloom']];
 
   var CSS = '\
-.wth-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:-1;pointer-events:none}\
+.wth-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:-1;pointer-events:none;transition:opacity .9s ease}\
 .wth-canvas[hidden]{display:none}\
 .wth-toggle{position:fixed;right:16px;bottom:16px;z-index:2147483000;border:0;border-radius:999px;padding:10px 18px;background:#2a1e31;color:#f6eeea;font:500 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(42,30,49,.25)}\
 .wth-panel{position:fixed;right:16px;bottom:64px;max-height:calc(100vh - 80px);z-index:2147483000;width:min(300px,calc(100vw - 32px));display:flex;flex-direction:column;border-radius:14px;background:rgba(250,244,241,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(42,30,49,.2);font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:#2a1e31;text-align:left}\
@@ -169,8 +174,74 @@
   function round(v){ return typeof v === 'number' ? +v.toFixed(3) : v; }
   function copyObj(o){ return JSON.parse(JSON.stringify(o)); }
 
+  // Paint-safe start (v1.5). PageSpeed / Lighthouse and Googlebot render headless with no GPU, so
+  // WebGL runs on the CPU (SwiftShader, llvmpipe…) and an animated canvas starves the main thread.
+  // On a software renderer, or with no WebGL at all, the hero shows its still poster instead.
+  var CFG = window.WovenThreadHeroConfig || {};
+  function flag(el, attr, key, def){
+    var a = el.getAttribute(attr);
+    if (a !== null) return a !== 'false';
+    return key in CFG ? !!CFG[key] : def;
+  }
+  var SOFTWARE_GL_RE = /swiftshader|llvmpipe|softpipe|software|basic render/i, glCheck;
+  function softwareGL(){                                       // '' for a hardware GPU, otherwise the reason
+    if (glCheck !== undefined) return glCheck;
+    glCheck = '';
+    try {
+      var c = document.createElement('canvas');
+      var gl = c.getContext('webgl2') || c.getContext('webgl');
+      if (!gl) glCheck = 'no WebGL';
+      else {
+        var name = String(gl.getParameter(gl.RENDERER) || '');
+        var ext = gl.getExtension('WEBGL_debug_renderer_info');
+        if (ext) name += ' | ' + String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '');
+        if (SOFTWARE_GL_RE.test(name)) glCheck = name;
+        var lose = gl.getExtension('WEBGL_lose_context'); lose && lose.loseContext();
+      }
+    } catch (e) { glCheck = 'WebGL check failed'; }
+    return glCheck;
+  }
+  var staticNoticeShown = false;
+  function posterFor(el, fallback){
+    var narrowNow = window.matchMedia('(max-width: 767px)').matches;
+    return (narrowNow && el.getAttribute('data-woven-poster-portrait')) || el.getAttribute('data-woven-poster') || fallback;
+  }
+  function showPoster(el, fallback){
+    var url = posterFor(el, fallback);
+    if (!url) return;
+    el.style.backgroundImage = 'url("' + url + '")';
+    el.style.backgroundRepeat = 'no-repeat';
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+  }
+  function staticHero(el, fallback, reason){
+    el.classList.add('wth-static');
+    showPoster(el, fallback);
+    window.addEventListener('resize', function(){ showPoster(el, fallback); }, { passive: true });
+    if (!staticNoticeShown){
+      staticNoticeShown = true;
+      console.info('[woven] software WebGL (' + reason + ') — showing the still poster. ' +
+        'Add data-woven-software-fallback="false" to animate anyway.');
+    }
+    var noop = function(){};
+    el.__woven = { static: true, set: noop, get: function(){ return {}; }, breakpoint: noop, settings: function(){ return {}; }, blend: noop, pause: noop };
+    ready(el, true);
+  }
+  function ready(el, isStatic){
+    setTimeout(function(){
+      el.dispatchEvent(new CustomEvent('woven:ready', { bubbles: true, detail: { instance: el.__woven, static: isStatic } }));
+    }, 0);
+  }
+  // deferStart: build the renderer once the page has loaded and the browser is idle, so the shader
+  // compile and first frames don't compete with the page's first paint
+  function whenSettled(defer, fn){
+    if (!defer) return fn();
+    var go = function(){ (window.requestIdleCallback || function(f){ return setTimeout(f, 1); })(fn, { timeout: 1500 }); };
+    if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
+  }
+
   function init(el){
-    if (el.__woven) return;
+    if (el.__woven || el.__wovenPending) return;
     var saved = {};
     try { saved = JSON.parse(el.getAttribute('data-woven-settings') || '{}'); }
     catch (e) { console.warn('[woven] data-woven-settings is not valid JSON', e); }
@@ -208,15 +279,17 @@
     var narrow = function(){ return window.matchMedia('(max-width: 767px)').matches; };
 
     injectCSS();
+    if (flag(el, 'data-woven-software-fallback', 'softwareFallback', true)){
+      var why = softwareGL();
+      if (why) return staticHero(el, fallback, why);
+    }
+    var deferred = flag(el, 'data-woven-defer-start', 'deferStart', true);
+    el.__wovenPending = true;
+    whenSettled(deferred, function(){
+    el.__wovenPending = false;
     // the canvases sit behind the hero's own content without touching its children
     if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
     el.style.isolation = 'isolate';
-    if (fallback && !el.style.backgroundImage){
-      el.style.backgroundImage = 'url("' + fallback + '")';
-      el.style.backgroundRepeat = 'no-repeat';
-      el.style.backgroundPosition = 'right ' + Math.round(state.focalY * 100) + '%';
-      el.style.backgroundSize = narrow() ? 'cover' : 'auto 100%';
-    }
     var cThreads = document.createElement('canvas'), cSwirl = document.createElement('canvas');
     cThreads.className = cSwirl.className = 'wth-canvas';
     cThreads.setAttribute('aria-hidden', 'true'); cSwirl.setAttribute('aria-hidden', 'true');
@@ -239,6 +312,7 @@
       perfBox = document.createElement('pre'); perfBox.className = 'wth-stats'; perfBox.textContent = 'Measuring…';
       document.body.appendChild(perfBox);
     }
+    if (deferred) cThreads.style.opacity = cSwirl.style.opacity = '0';   // fade in rather than pop
     try { threads = mwpThreads(cThreads, threadOpts()); } catch (e) { console.warn('[woven]', e); }
     var swirl = null, mode = threads ? 'threads' : 'photo', paused = false;
 
@@ -249,6 +323,8 @@
     }
     if (threads) el.style.backgroundImage = 'none';
     else if (fallback){ cThreads.hidden = true; cSwirl.hidden = false; startSwirl(); }
+    if (!threads && !swirl) showPoster(el, fallback);              // no WebGL renderer at all: the still
+    if (deferred) requestAnimationFrame(function(){ requestAnimationFrame(function(){ cThreads.style.opacity = cSwirl.style.opacity = ''; }); });
 
     function apply(v){
       threads && threads.set(v);
@@ -280,6 +356,7 @@
     };
     el.__woven = api;
     if (showControls) buildPanel();
+    ready(el, false);
 
     function buildPanel(){
       var btn = document.createElement('button');
@@ -547,9 +624,10 @@
       }
       if (prefs.min) setMin(true);
     }
+    });
   }
 
   function boot(){ document.querySelectorAll('[data-woven-hero]').forEach(init); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  window.WovenThreadHero = { init: init, defaults: DEFAULTS };
+  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.5.0' };
 })();
