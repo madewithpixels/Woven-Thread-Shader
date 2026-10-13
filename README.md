@@ -22,6 +22,7 @@ webflow/
   test-page.html            Local page that mimics a Webflow hero, for testing the embed
   swirl.jpg                 Artwork used by the test page
 tools/
+  make-loader.sh            Prints the async loader for Webflow, pinned to a commit with its SRI hash
   render-posters.py         Re-renders the two posters from the shader at the current defaults
   poster.html               Page the script renders in
 ```
@@ -147,6 +148,16 @@ Either part can be switched off per element with `data-woven-software-fallback="
 The element fires a `woven:ready` event when it's set up, with `detail.static` true for the poster. In static mode `el.__woven.static` is `true` and its methods do nothing.
 
 **Keep the posters current.** They're rendered from the shader at the default settings. After changing the defaults, re-render them (`python3 tools/render-posters.py`, see the script for setup), commit, and bump the poster URLs.
+
+### Loading the script without blocking
+
+Webflow registered scripts can't carry `defer` or `async`, so a registered hosted script blocks the page's first paint while it downloads. Instead, each page that has the hero carries a tiny inline loader in **Page settings > Custom code > Before `</body>`**. It adds the hosted script with `async`, pinned to a commit and checked with its SRI hash:
+
+```
+sh tools/make-loader.sh            # or: sh tools/make-loader.sh <commit>
+```
+
+Paste the output inside `<script>…</script>`. On a new release, push, run it again and replace the loader on every page that has the hero (Voice Focus: Home, Biography, Voice Therapy, Booking, Contact).
 
 ## Behaviour and fallbacks
 
