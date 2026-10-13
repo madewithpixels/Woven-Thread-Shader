@@ -27,20 +27,27 @@
     threads: 1500, thickness: 1.35, highlights: 1.9, opacity: 1.02, warmth: 0.68, accents: 2.7,
     targetFps: 60, maxFps: 30,
     hue: 0, saturation: 0.83, brightness: 1, paper: '#efe1dc',
-    x: 0.1, y: 0.13, xUnit: 'hero', yUnit: 'hero', zoom: 0.91, turn: -27, tilt: -6, rotate: 10, depth: 1.46, fog: 2,
+    xUnit: 'hero', yUnit: 'hero', zoom: 0.91,
+    // the view, per shape: X, Y, Turn, Tilt, Rotate, Depth and Fog are remembered separately for each shape
+    x_loop: 0.1, y_loop: 0.13, turn_loop: -27, tilt_loop: -6, rotate_loop: 10, depth_loop: 1.46, fog_loop: 2,
+    x_wave: 0, y_wave: 0, turn_wave: 0, tilt_wave: 0, rotate_wave: 0, depth_wave: 0.6, fog_wave: 0.6,
+    x_vortex: 0, y_vortex: 0, turn_vortex: 0, tilt_vortex: 0, rotate_vortex: 0, depth_vortex: 0.6, fog_vortex: 0.6,
+    x_braid: 0, y_braid: 0, turn_braid: 0, tilt_braid: 0, rotate_braid: 0, depth_braid: 0.6, fog_braid: 0.6,
+    x_bloom: 0, y_bloom: 0, turn_bloom: 0, tilt_bloom: 0, rotate_bloom: 0, depth_bloom: 0.6, fog_bloom: 0.6,
     focalY: 0.36, widthShare: 0.54
   };
 
+  var CAMERA = ['x', 'y', 'turn', 'tilt', 'rotate', 'depth', 'fog'];   // remembered separately for each shape
   var GROUPS = [
     { name: 'Motion', both: true, items: [
       ['speed', 'Speed', 0, 2, 0.05], ['flow', 'Flow', 0, 3, 0.05], ['twist', 'Twist', 0, 5, 0.05],
       ['shimmer', 'Shimmer', 0, 2, 0.05], ['parallax', 'Mouse tilt', 0, 3, 0.05, null, true] ]},
     { name: 'Path', items: [ ['path', 'Path', 'path'], ['length', 'Length', 'len'], ['morphTime', 'Morph time', 0.3, 5, 0.1, 1],
       ['fan', 'Spread', 0.5, 1.8, 0.01], ['hole', 'Opening', 0.4, 2.4, 0.01] ]},
-    { name: 'Position', items: [
-      ['x', 'X', 'unit'], ['y', 'Y', 'unit'], ['zoom', 'Zoom', 0.25, 3, 0.01],
+    { name: 'View (per shape)', items: [
+      ['x', 'X', 'unit'], ['y', 'Y', 'unit'],
       ['turn', 'Turn', -70, 70, 1, 0], ['tilt', 'Tilt', -70, 70, 1, 0], ['rotate', 'Rotate', -180, 180, 1, 0],
-      ['depth', 'Depth', 0, 1.5, 0.01], ['fog', 'Fog', 0, 2, 0.01] ]},
+      ['depth', 'Depth', 0, 1.5, 0.01], ['fog', 'Fog', 0, 2, 0.01], ['zoom', 'Zoom (all shapes)', 0.25, 3, 0.01] ]},
     { name: 'Threads', items: [
       ['threads', 'Count', 400, 4000, 100, 0],
       ['thickness', 'Thickness', 0.4, 3, 0.05], ['highlights', 'Highlights', 0, 4, 0.1],
@@ -253,6 +260,13 @@
       else if (k === 'mobileThreads') layers.landscape.threads = layers.landscape.threads || saved[k];   // older saved settings
       else layers.desktop[k] = saved[k];
     });
+    Object.keys(layers).forEach(function(b){
+      CAMERA.forEach(function(k){
+        if (!(k in layers[b])) return;
+        PATH_NAMES.forEach(function(p){ if (!((k + '_' + p[0]) in layers[b])) layers[b][k + '_' + p[0]] = layers[b][k]; });
+        delete layers[b][k];
+      });
+    });
     var savedLayers = copyObj(layers);
 
     function currentBp(){
@@ -385,13 +399,14 @@
       }
       function clearVal(k){
         delete layers[bp][k];
-        if (k === 'x' || k === 'y') delete layers[bp][k + 'Unit'];
+        var ax = /^([xy])_/.exec(k);                                // drop the unit too once no shape overrides that axis here
+        if (ax && !PATH_NAMES.some(function(p){ return (ax[1] + '_' + p[0]) in layers[bp]; })) delete layers[bp][ax[1] + 'Unit'];
         refresh();
       }
       function syncRow(k){
         var r = rows[k]; if (!r) return;
         var kk = r.key ? r.key() : k;
-        var own = bp !== 'desktop' && (Object.prototype.hasOwnProperty.call(layers[bp], kk) || Object.prototype.hasOwnProperty.call(layers[bp], kk + 'Unit'));
+        var own = bp !== 'desktop' && (Object.prototype.hasOwnProperty.call(layers[bp], kk) || (!!r.unitKey && Object.prototype.hasOwnProperty.call(layers[bp], r.unitKey)));
         r.row.classList.toggle('wth-ovr', own);
         r.clear.hidden = !own;
         if (r.sync) r.sync();
@@ -456,18 +471,21 @@
                 if (unit === 'svh') return svhCss/100;
                 return 1;
               };
-              input.addEventListener('input', function(){ out.value = fmtUnit(+input.value, state[uk]); setVal(k, +input.value); });
+              var key = function(){ return k + '_' + state.path; };       // remembered separately for each shape
+              input.addEventListener('input', function(){ out.value = fmtUnit(+input.value, state[uk]); setVal(key(), +input.value); });
               sel.addEventListener('change', function(){
-                // convert the current offset so the shape stays where it is
+                // convert every shape's offset so each stays where it is (the unit is shared)
                 var from = state[uk], to = sel.value, r = UNIT_RANGE[to];
-                var v = state[k] * cssPer(from) / cssPer(to);
-                v = Math.max(r[0], Math.min(r[1], Math.round(v / r[2]) * r[2]));
-                layers[bp][uk] = to; setVal(k, v);
+                PATH_NAMES.forEach(function(p){
+                  var pk = k + '_' + p[0], v = state[pk] * cssPer(from) / cssPer(to);
+                  layers[bp][pk] = Math.max(r[0], Math.min(r[1], Math.round(v / r[2]) * r[2]));
+                });
+                layers[bp][uk] = to; refresh();
               });
-              rows[k] = { row: row, clear: row.querySelector('.wth-clear'), sync: function(){
-                var unit = state[uk], r = UNIT_RANGE[unit] || UNIT_RANGE.hero;
-                input.min = r[0]; input.max = r[1]; input.step = r[2]; input.value = state[k];
-                out.value = fmtUnit(state[k], unit); sel.value = unit;
+              rows[k] = { row: row, clear: row.querySelector('.wth-clear'), key: key, unitKey: uk, sync: function(){
+                var unit = state[uk], r = UNIT_RANGE[unit] || UNIT_RANGE.hero, v = state[key()];
+                input.min = r[0]; input.max = r[1]; input.step = r[2]; input.value = v;
+                out.value = fmtUnit(v, unit); sel.value = unit; input.title = 'For the ' + state.path + ' shape';
               } };
             })(k, axis, uk, row);
           } else {
@@ -478,11 +496,15 @@
               : '<input id="' + id + '" type="range" min="' + it[2] + '" max="' + it[3] + '" step="' + it[4] + '" value="' + state[k] + '"><output for="' + id + '">' + fmt(state[k], it[5]) + '</output>');
             var input = row.querySelector('input'), out = row.querySelector('output');
             rows[k] = { row: row, clear: row.querySelector('.wth-clear'), input: input, out: out, dp: it[5] };
+            if (CAMERA.indexOf(k) >= 0) (function(k, r){                // camera: remembered separately for each shape
+              r.key = function(){ return k + '_' + state.path; };
+              r.sync = function(){ var v = state[r.key()]; r.input.value = v; r.out.value = fmt(v, r.dp); r.input.title = 'For the ' + state.path + ' shape'; };
+            })(k, rows[k]);
             (function(k, input, out, dp, isColor){
               input.addEventListener('input', function(){
                 var v = isColor ? input.value : +input.value;
                 if (out) out.value = fmt(v, dp);
-                setVal(k, v);
+                setVal(rows[k].key ? rows[k].key() : k, v);
               });
             })(k, input, out, it[5], isColor);
           }
@@ -629,5 +651,5 @@
 
   function boot(){ document.querySelectorAll('[data-woven-hero]').forEach(init); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.5.0' };
+  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.6.0' };
 })();

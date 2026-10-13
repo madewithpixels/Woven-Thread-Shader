@@ -10,6 +10,18 @@
 
    mwpThreads(canvas, opts) returns { set, get, pause, blend, quality }
    ============================================================ */
+const MWP_PATHS = ['loop', 'wave', 'vortex', 'braid', 'bloom'];
+const MWP_CAMERA = ['x', 'y', 'turn', 'tilt', 'rotate', 'depth', 'fog'];
+// a plain view setting (turn: 10) applies to every path that isn't given its own (turn_wave: 0)
+function perPath(v){
+  const out = Object.assign({}, v);
+  MWP_CAMERA.forEach(k => {
+    if (!(k in out)) return;
+    MWP_PATHS.forEach(p => { if (!((k + '_' + p) in v)) out[k + '_' + p] = out[k]; });
+    delete out[k];
+  });
+  return out;
+}
 function mwpThreads(canvas, opts){
   const o = Object.assign({
     threads: 1500,          // number of threads
@@ -29,12 +41,17 @@ function mwpThreads(canvas, opts){
     opacity: 1.02, warmth: 0.68, accents: 2.7,                // threads
     hue: 0, saturation: 0.83, brightness: 1,                 // colour
     paper: '#efe1dc',                                        // background
-    x: 0.1, y: 0.13, zoom: 0.91,                                  // position offset of the shape's centre; zoom about that centre
+    zoom: 0.91,                                              // zoom about the shape's centre
     xUnit: 'hero', yUnit: 'hero',                            // x: hero (share of its width) · vw · px;  y: hero · svh · vh · px
-    turn: -27, tilt: -6, rotate: 10,                             // 3D rotation in degrees
-    depth: 1.46, fog: 2,                                    // perspective strength, and how far strands fade into the paper
+    // the view, per path (<setting>_<path>): x/y offset of the shape's centre, 3D rotation in degrees,
+    // perspective strength, and how far strands fade into the paper. A plain x/turn/… sets every path at once.
+    x_loop: 0.1, y_loop: 0.13, turn_loop: -27, tilt_loop: -6, rotate_loop: 10, depth_loop: 1.46, fog_loop: 2,
+    x_wave: 0, y_wave: 0, turn_wave: 0, tilt_wave: 0, rotate_wave: 0, depth_wave: 0.6, fog_wave: 0.6,
+    x_vortex: 0, y_vortex: 0, turn_vortex: 0, tilt_vortex: 0, rotate_vortex: 0, depth_vortex: 0.6, fog_vortex: 0.6,
+    x_braid: 0, y_braid: 0, turn_braid: 0, tilt_braid: 0, rotate_braid: 0, depth_braid: 0.6, fog_braid: 0.6,
+    x_bloom: 0, y_bloom: 0, turn_bloom: 0, tilt_bloom: 0, rotate_bloom: 0, depth_bloom: 0.6, fog_bloom: 0.6,
     maxDpr: 2
-  }, opts || {});
+  }, perPath(opts || {}));
 
   // no MSAA: strands draw their own soft edges, which is much cheaper
   const gl = canvas.getContext('webgl2', {antialias:false, alpha:false, premultipliedAlpha:true});
@@ -64,7 +81,7 @@ function mwpThreads(canvas, opts){
      viewer), centred on the pivot. A thread is drawn in two halves (back half first, so the loop's
      inner wall sits behind its front), and each end carries a straight tail that runs well past the
      screen edge, so no thread visibly starts or stops. Paths morph by blending positions. */
-  const PATHS = ['loop', 'wave', 'vortex', 'braid', 'bloom'];
+  const PATHS = MWP_PATHS;
   const thVS = (sa, sb, morph) => `#version 300 es
   precision highp float;
   // each path (and each morph pair) gets its own compiled program, so a vertex only runs the maths it needs
@@ -523,7 +540,7 @@ function mwpThreads(canvas, opts){
     let oy = H*0.5 - o.focalY*ih*s; oy = Math.min(0, Math.max(H - ih*s, oy));
     const ox = W - iw*s;
     // the shape's centre on screen, moved by x/y as a share of the viewport; zoom scales about it
-    const pivotPx = [ox + PIVOT[0]*ih*s + offsetPx(o.x, o.xUnit, W, dpr, 'x'), oy + PIVOT[1]*ih*s + offsetPx(o.y, o.yUnit, H, dpr, 'y')];
+    const pivotPx = [ox + PIVOT[0]*ih*s, oy + PIVOT[1]*ih*s];       // the per-path x/y offset is added in draw()
     const pxScale = ih*s*o.zoom;
     L = {W, H, s, dpr, pivotPx, pxScale, tail: 2.5*Math.hypot(W, H)/pxScale};
   }
@@ -544,10 +561,13 @@ function mwpThreads(canvas, opts){
     gl.uniform1f(u.uThick, o.thickness); gl.uniform1f(u.uDpr, L.dpr);
     gl.uniform1f(u.uTime, t); gl.uniform1f(u.uFlow, o.flow); gl.uniform1f(u.uTwist, o.twist); gl.uniform1f(u.uShimmer, o.shimmer);
     gl.uniform2f(u.uRes, L.W, L.H); gl.uniform2f(u.uMouse, mouse.x*o.parallax, mouse.y*o.parallax);
-    gl.uniform2f(u.uPivot, PIVOT[0], PIVOT[1]); gl.uniform2f(u.uPivotPx, L.pivotPx[0], L.pivotPx[1]);
+    // the view follows the morph: a blend of the two paths' settings
+    const cam = k => { const a = o[k + '_' + PATHS[shape.a]], b = o[k + '_' + PATHS[shape.b]]; return a + (b - a)*shape.m; };
+    gl.uniform2f(u.uPivot, PIVOT[0], PIVOT[1]);
+    gl.uniform2f(u.uPivotPx, L.pivotPx[0] + offsetPx(cam('x'), o.xUnit, L.W, L.dpr, 'x'), L.pivotPx[1] + offsetPx(cam('y'), o.yUnit, L.H, L.dpr, 'y'));
     gl.uniform1f(u.uPxScale, L.pxScale); gl.uniform1f(u.uTail, L.tail); gl.uniform1i(u.uTailPts, TAIL_PTS);
     const D = Math.PI/180;
-    gl.uniform3f(u.uRot, o.turn*D, o.tilt*D, o.rotate*D); gl.uniform1f(u.uDepth, o.depth); gl.uniform1f(u.uFog, o.fog);
+    gl.uniform3f(u.uRot, cam('turn')*D, cam('tilt')*D, cam('rotate')*D); gl.uniform1f(u.uDepth, cam('depth')); gl.uniform1f(u.uFog, cam('fog'));
     gl.uniform3fv(u.uPaperC, hex(o.paper));
     gl.uniform1f(u.uMorph, shape.m);
     gl.uniform1fv(u.uLens, PATHS.map(p => o['len_' + p] || 1));
@@ -610,6 +630,7 @@ function mwpThreads(canvas, opts){
 
   return {
     set(v){
+      v = perPath(v);
       if ('path' in v && v.path !== o.path) goTo(v.path);
       Object.assign(o, v);
       layout();                                                  // position, zoom and quality live here, so always refresh
