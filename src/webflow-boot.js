@@ -327,7 +327,7 @@
 
     var threads = null, perfOut = null, perfBox = null, panelUi = null;
     function threadOpts(){
-      return Object.assign({ maxDpr: 1.5, onPerf: function(p){
+      return Object.assign({ maxDpr: 1.5, onCalibrated: function(){ reveal(); }, onPerf: function(p){
         var q = p.level ? 'quality stepped down ' + p.level + ' of ' + p.levels : 'full quality';
         if (perfOut) perfOut.textContent = p.fps + ' fps · ' + q;
         if (perfBox) perfBox.textContent =
@@ -341,8 +341,16 @@
       perfBox = document.createElement('pre'); perfBox.className = 'wth-stats'; perfBox.textContent = 'Measuring…';
       document.body.appendChild(perfBox);
     }
-    if (deferred) cThreads.style.opacity = cSwirl.style.opacity = '0';   // fade in rather than pop
+    // fade in rather than pop; 0.01 not 0, so the browser still composites the layer and the quality probe sees the real cost
+    if (deferred) cThreads.style.opacity = cSwirl.style.opacity = '0.01';
+    var revealed = false, calibratingNow = false;
+    function reveal(){
+      if (revealed) return; revealed = true;
+      cThreads.style.opacity = cSwirl.style.opacity = '';
+      if (calibratingNow) setTimeout(function(){ if (threads) el.style.backgroundImage = 'none'; }, 1000);   // the poster held the place until the fade is done
+    }
     try { threads = mwpThreads(cThreads, threadOpts()); } catch (e) { console.warn('[woven]', e); }
+    calibratingNow = !!(deferred && threads && threads.calibrating && threads.calibrating());
     var swirl = null, mode = threads ? 'threads' : 'photo', paused = false;
 
     function startSwirl(){
@@ -350,10 +358,12 @@
       var o = { src: fallback }; SWIRL_KEYS.forEach(function(k){ o[k] = state[k]; });
       try { swirl = mwpSwirl(cSwirl, o); } catch (e) { console.warn('[woven]', e); }
     }
-    if (threads) el.style.backgroundImage = 'none';
+    if (threads && calibratingNow) showPoster(el, fallback);      // the probe settles the quality behind the still, then the threads fade in
+    else if (threads) el.style.backgroundImage = 'none';
     else if (fallback){ cThreads.hidden = true; cSwirl.hidden = false; startSwirl(); }
     if (!threads && !swirl) showPoster(el, fallback);              // no WebGL renderer at all: the still
-    if (deferred) requestAnimationFrame(function(){ requestAnimationFrame(function(){ cThreads.style.opacity = cSwirl.style.opacity = ''; }); });
+    if (calibratingNow) setTimeout(reveal, 6000);                  // safety: never stay hidden
+    else if (deferred) requestAnimationFrame(function(){ requestAnimationFrame(reveal); });
 
     function apply(v){
       threads && threads.set(v);
@@ -681,5 +691,5 @@
 
   function boot(){ document.querySelectorAll('[data-woven-hero]').forEach(init); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.7.0' };
+  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.7.1' };
 })();

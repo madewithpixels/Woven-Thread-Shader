@@ -29,6 +29,7 @@ function mwpThreads(canvas, opts){
     thickness: 1.35,        // strand width in CSS pixels
     highlights: 1.9,          // amount of thicker white strands
     targetFps: 60,          // adaptive quality: 0 = off
+    calibrate: true,        // settle the quality level up front (the host keeps the canvas hidden until onCalibrated), and remember it per device
     maxFps: 30,             // frame cap: the motion is slow, so 30 looks the same at half the GPU work. 0 = uncapped
     onPerf: null,           // callback({fps, level, levels, threads, points, scale, width, height, gpu}) about once a second
     path: 'loop',           // loop · wave · vortex · braid · bloom
@@ -475,9 +476,24 @@ function mwpThreads(canvas, opts){
      straight away, stay put for 30s before trying again. */
   const LADDER = [            // [resolution, threads, points]
     [1.00, 1.00, 1.00], [0.85, 1.00, 1.00], [0.75, 0.85, 1.00], [0.75, 0.70, 0.85],
-    [0.65, 0.60, 0.75], [0.55, 0.50, 0.65], [0.50, 0.40, 0.55]
+    [0.65, 0.60, 0.75], [0.55, 0.50, 0.65], [0.50, 0.40, 0.55],
+    [0.40, 0.35, 0.50], [0.33, 0.30, 0.45]                    // the tail is for older tablets that are still short at the old floor
   ];
-  const perf = { level: 0, frames: 0, time: 0, changedAt: 0, steppedUpAt: -1e9, holdUntil: 0 };
+  // The settled level is remembered per device class, so the next load starts there instead of stepping down in view.
+  const QKEY = 'wth-q-' + (innerWidth < 768 ? 's' : innerWidth < 1100 ? 'm' : 'l');
+  function loadLevel(){
+    try { const v = JSON.parse(localStorage.getItem(QKEY)); if (v && Date.now() - v.t < 14*864e5 && v.l >= 0 && v.l < LADDER.length) return v.l; } catch (e) {}
+    return -1;
+  }
+  function saveLevel(l){ try { localStorage.setItem(QKEY, JSON.stringify({ l: l, t: Date.now() })); } catch (e) {} }
+  const stored = loadLevel();
+  const perf = { level: stored > 0 ? stored : 0, frames: 0, time: 0, changedAt: 0, steppedUpAt: -1e9, holdUntil: 0,
+    calibrating: !!(o.calibrate && o.targetFps > 0 && stored < 0), calibStart: 0, saved: stored };
+  function endCalibration(){
+    if (!perf.calibrating) return;
+    perf.calibrating = false; perf.saved = perf.level; saveLevel(perf.level);
+    o.onCalibrated && o.onCalibrated();
+  }
   function setLevel(n, now){
     n = Math.max(0, Math.min(LADDER.length - 1, n));
     if (n === perf.level) return;
@@ -488,14 +504,22 @@ function mwpThreads(canvas, opts){
   }
   function measure(dt, now){
     if (!dt) return;
+    const calib = perf.calibrating;                              // while calibrating (hidden): shorter windows, and big misses skip a level
+    if (calib && !perf.calibStart){ perf.calibStart = now; perf.changedAt = now; return; }   // the first frames carry the shader compile: don't judge them
     perf.frames++; perf.time += dt;
-    if (perf.time < 1 || now - perf.changedAt < 1500) return;   // 1s windows, ignoring a settle period after changes
+    if (perf.time < (calib ? 0.5 : 1) || now - perf.changedAt < (calib ? 350 : 1500)) return;   // measuring windows, ignoring a settle period after changes
     const fps = perf.frames / perf.time;
     perf.frames = 0; perf.time = 0;
     const target = o.maxFps > 0 && o.targetFps > 0 ? Math.min(o.targetFps, o.maxFps) : o.targetFps;
     if (target > 0){
-      if (fps < target * 0.9) setLevel(perf.level + 1, now);
-      else if (fps >= target * 0.97 && perf.level > 0 && now - perf.changedAt > 6000 && now > perf.holdUntil) setLevel(perf.level - 1, now);
+      if (fps < target * 0.9){
+        if (calib && (perf.level >= LADDER.length - 1 || now - perf.calibStart > 5000)) endCalibration();   // at the floor, or out of time: show it as it is
+        else setLevel(perf.level + (calib && fps < target * 0.6 ? 2 : 1), now);
+      } else {
+        if (calib) endCalibration();
+        else if (fps >= target * 0.97 && perf.level > 0 && now - perf.changedAt > 6000 && now > perf.holdUntil) setLevel(perf.level - 1, now);
+        if (!perf.calibrating && now - perf.changedAt > 5000 && perf.saved !== perf.level){ perf.saved = perf.level; saveLevel(perf.level); }
+      }
     } else if (perf.level) setLevel(0, now);
     o.onPerf && o.onPerf(Object.assign({ fps: Math.round(fps) }, stats()));
   }
@@ -641,6 +665,7 @@ function mwpThreads(canvas, opts){
     paths: PATHS.slice(),
     get(){ return Object.assign({}, o); },
     quality(){ return stats(); },
+    calibrating(){ return perf.calibrating; },
     pause(p){ running = !p; if (p) still(); loop(); },
     time(v){ t = v; still(); }
   };
