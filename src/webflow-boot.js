@@ -251,9 +251,9 @@
 
   // Hero position per breakpoint. Landscape is pinned to the desktop-era look so Tablet doesn't cascade into it.
   var RESPONSIVE = {
-    tablet:    { x_loop: 0.42, y_loop: 0.21, turn_loop: -22, tilt_loop: -26 },
-    landscape: { x_loop: 0.1,  y_loop: 0.13, turn_loop: -27, tilt_loop: -6 },
-    portrait:  { x_loop: 0.76, y_loop: -0.06 }
+    tablet:    { x_loop: 0.60, y_loop: -0.05, turn_loop: -22, tilt_loop: -5, rotate_loop: 10 },
+    landscape: { x_loop: 0.1,  y_loop: 0.13,  turn_loop: -27, tilt_loop: -6, rotate_loop: 10 },
+    portrait:  { x_loop: 0.58, y_loop: -0.06, turn_loop: -27, tilt_loop: -6, rotate_loop: 10 }
   };
 
   function init(el){
