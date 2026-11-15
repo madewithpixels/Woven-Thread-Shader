@@ -125,10 +125,12 @@
 .wth-inline .wth-foot button{flex:0 0 auto;padding:8px 16px}\
 .wth-inline .wth-bpbar{margin-top:10px}\
 .wth-bps{display:flex;flex-wrap:wrap;gap:6px}\
-.wth-bps span{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid rgba(42,30,49,.15);color:#5b4a60;white-space:nowrap}\
-.wth-bps span[aria-current="true"]{background:#5e2a6e;border-color:#5e2a6e;color:#fff}\
+.wth-bps button{font:500 11px system-ui,sans-serif;padding:3px 9px;border-radius:999px;border:1px solid rgba(42,30,49,.15);background:transparent;color:#5b4a60;white-space:nowrap;cursor:pointer}\
+.wth-bps button:hover{border-color:#5e2a6e;color:#5e2a6e}\
+.wth-bps button[aria-pressed="true"]{background:#5e2a6e;border-color:#5e2a6e;color:#fff}\
+.wth-bps button[data-win]::after{content:"";display:inline-block;width:5px;height:5px;margin-left:5px;border-radius:50%;background:currentColor;opacity:.55;vertical-align:middle}\
 .wth-bps em{font-style:normal;margin-left:5px;padding:0 5px;border-radius:999px;background:rgba(42,30,49,.1)}\
-.wth-bps span[aria-current="true"] em{background:rgba(255,255,255,.25)}\
+.wth-bps button[aria-pressed="true"] em{background:rgba(255,255,255,.25)}\
 .wth-hint{margin:8px 0 0;font-size:12px;line-height:1.45;color:#5b4a60}\
 .wth-lcell{display:flex;align-items:center;gap:4px;min-width:0}\
 .wth-ovr label,.wth-ovr .wth-lbl{color:#5e2a6e;font-weight:600}\
@@ -247,6 +249,13 @@
     if (document.readyState === 'complete') go(); else window.addEventListener('load', go, { once: true });
   }
 
+  // Hero position per breakpoint. Landscape is pinned to the desktop-era look so Tablet doesn't cascade into it.
+  var RESPONSIVE = {
+    tablet:    { x_loop: 0.42, y_loop: 0.21, turn_loop: -22, tilt_loop: -26 },
+    landscape: { x_loop: 0.1,  y_loop: 0.13, turn_loop: -27, tilt_loop: -6 },
+    portrait:  { x_loop: 0.76, y_loop: -0.06 }
+  };
+
   function init(el){
     if (el.__woven || el.__wovenPending) return;
     var saved = {};
@@ -267,12 +276,18 @@
         delete layers[b][k];
       });
     });
+    // Built-in responsive positions (v1.7): the same on every page. Anything in data-woven-settings wins.
+    Object.keys(RESPONSIVE).forEach(function(b){
+      Object.keys(RESPONSIVE[b]).forEach(function(k){ if (!(k in layers[b])) layers[b][k] = RESPONSIVE[b][k]; });
+    });
     var savedLayers = copyObj(layers);
 
-    function currentBp(){
+    function viewportBp(){
       for (var i = BPS.length - 1; i > 0; i--) if (window.matchMedia('(max-width: ' + BPS[i].max + 'px)').matches) return BPS[i].id;
       return 'desktop';
     }
+    var forcedBp = null;                                         // set by clicking a breakpoint in the panel: edit it whatever the window width
+    function currentBp(){ return forcedBp || viewportBp(); }
     function effective(id){
       var s = Object.assign({}, DEFAULTS);
       for (var i = 0; i < BPS.length; i++){
@@ -413,18 +428,32 @@
         else { r.input.value = state[k]; if (r.out) r.out.value = fmt(state[k], r.dp); }
       }
       function updateBpUi(){
+        var vb = viewportBp();
         bpsEl.innerHTML = BPS.map(function(b){
           var n = Object.keys(layers[b.id]).filter(function(k){ return !/Unit$/.test(k) || !((k.replace('Unit', '')) in layers[b.id]); }).length;
-          return '<span' + (b.id === bp ? ' aria-current="true"' : '') + '>' + b.label + (b.max ? ' ≤' + b.max : '') +
-            (n ? '<em>' + n + '</em>' : '') + '</span>';
+          return '<button type="button" data-bp="' + b.id + '" aria-pressed="' + (b.id === bp) + '"' +
+            (b.id === vb ? ' data-win title="Your window is in this breakpoint. Click it to follow the window."' : '') + '>' +
+            b.label + (b.max ? ' ≤' + b.max : '') + (n ? '<em>' + n + '</em>' : '') + '</button>';
         }).join('');
-        var cur = bpLabel(bp);
+        var cur = bpLabel(bp), win = bpLabel(vb);
         hint.innerHTML = bp === 'desktop'
-          ? 'Editing <b>Desktop</b>, the base for every screen size. Narrow the window to edit a smaller breakpoint.'
+          ? 'Editing <b>Desktop</b>, the base for every screen size. Click a smaller breakpoint to edit it.'
           : 'Editing <b>' + cur.label + '</b> (' + cur.max + 'px and below). ' +
             (bp !== 'portrait' ? 'Changes here also apply to smaller breakpoints unless they set their own. ' : '') +
             'Marked settings are overridden here; × clears one.';
+        if (bp !== vb)
+          hint.innerHTML += ' <b>Preview only:</b> your window is ' + innerWidth + 'px wide (' + win.label + ') and X/Y are shares of the hero, so check the real position ' +
+            (cur.max ? 'at ' + cur.max + 'px wide or narrower' : 'at full width') + '. Click ' + win.label + ' to follow the window again.';
       }
+      // clicking a breakpoint edits (and previews) it whatever the window width; clicking the window's own follows the window again
+      bpsEl.addEventListener('click', function(e){
+        var t = e.target.closest ? e.target.closest('[data-bp]') : null;
+        if (!t) return;
+        forcedBp = t.getAttribute('data-bp') === viewportBp() ? null : t.getAttribute('data-bp');
+        var nb = currentBp();
+        if (nb !== bp){ bp = nb; refresh(); } else updateBpUi();
+      });
+      window.addEventListener('resize', function(){ if (forcedBp) updateBpUi(); }, { passive: true });   // keep the window-width note current
       panelUi = { syncAll: function(){ Object.keys(rows).forEach(syncRow); updateBpUi(); } };
 
       GROUPS.forEach(function(g){
@@ -572,6 +601,7 @@
       /* ----- placement: docked inside [data-woven-panel], or a floating window you can drag -----
          Where it floats, whether it's minimised and whether it's popped out are remembered per browser. */
       var host = document.querySelector('[data-woven-panel]');
+      if (host && !host.getClientRects().length) host = null;       // the slot is display:none (Webflow conditional visibility, say): float instead of docking into nothing
       var floatBtn = panel.querySelector('[data-act="float"]'), minBtn = panel.querySelector('[data-act="min"]');
       var bar = panel.querySelector('.wth-titlebar');
       var prefs = {};
@@ -651,5 +681,5 @@
 
   function boot(){ document.querySelectorAll('[data-woven-hero]').forEach(init); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.6.0' };
+  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.7.0' };
 })();

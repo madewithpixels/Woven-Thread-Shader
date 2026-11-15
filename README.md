@@ -58,7 +58,7 @@ Keep a readability gradient behind the headline as you would normally: a div ins
 
 ## Tuning
 
-With `data-woven-controls` on the section, the settings panel appears on the published page. If the page has an element with the attribute `data-woven-panel` (e.g. an empty div in the section under the hero), the panel sits inside it, always open. Otherwise a **Tune hero** button appears at the bottom right and opens it as a floating panel. The panel has:
+With `data-woven-controls` on the section, the settings panel appears on the published page. If the page has an element with the attribute `data-woven-panel` (e.g. an empty div in the section under the hero), the panel sits inside it, always open (if that element is hidden, for example by Webflow conditional visibility, the panel floats behind the Tune button instead). Otherwise a **Tune hero** button appears at the bottom right and opens it as a floating panel. The panel has:
 
 - **Renderer switch:** Threads / Photo (lo-fi). The photo option needs `data-woven-fallback`.
 - **Motion:** speed, flow, twist, shimmer, mouse tilt.
@@ -81,7 +81,7 @@ The panel has a title bar. **Pop out** turns it into a floating window you can d
 
 Every setting can be overridden per breakpoint, using Webflow's own: **Desktop** (the base), **Tablet** (991px and below), **Mobile landscape** (767px and below) and **Mobile portrait** (479px and below). Overrides cascade down just like styles in the Designer: a Tablet value also applies to both mobile sizes unless they set their own.
 
-The panel edits whichever breakpoint the window is currently at, so resize the browser (or use its device mode) to edit another. Chips at the top show the active breakpoint and how many overrides each has; settings overridden at the current breakpoint are marked, with a × to clear that override. **Copy** exports every breakpoint in one value, for example:
+The panel edits whichever breakpoint is highlighted. By default that follows the window width, and the breakpoint your window is in carries a small dot. **Click any breakpoint** to edit it whatever the window width, for example to set Tablet's X/Y from a desktop screen; click the dotted one to follow the window again. Because X and Y are shares of the hero (or vw/svh/px), a breakpoint edited from a different-width window is a preview only: the panel says so, and the true position shows once the window is at that width (or in the browser's device mode). The chips show how many overrides each breakpoint has; settings overridden at the current breakpoint are marked, with a × to clear that override. **Copy** exports every breakpoint in one value, for example:
 
 ```json
 {"zoom":0.9,"tablet":{"x":0.2},"landscape":{"y":0.3},"portrait":{"path":"braid","zoom":1.4}}
