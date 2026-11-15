@@ -343,14 +343,15 @@
     }
     // fade in rather than pop; 0.01 not 0, so the browser still composites the layer and the quality probe sees the real cost
     if (deferred) cThreads.style.opacity = cSwirl.style.opacity = '0.01';
-    var revealed = false, calibratingNow = false;
+    var revealed = false, calibratingNow = false;   // the 6s timer below means it can never stay hidden
     function reveal(){
       if (revealed) return; revealed = true;
       cThreads.style.opacity = cSwirl.style.opacity = '';
-      if (calibratingNow) setTimeout(function(){ if (threads) el.style.backgroundImage = 'none'; }, 1000);   // the poster held the place until the fade is done
     }
     try { threads = mwpThreads(cThreads, threadOpts()); } catch (e) { console.warn('[woven]', e); }
-    calibratingNow = !!(deferred && threads && threads.calibrating && threads.calibrating());
+    // First visit on a device: the threads stay invisible (plain paper, no poster to swap from) while the quality settles, then fade in.
+    // data-woven-calibrate-hidden="false" shows them straight away instead.
+    calibratingNow = !!(deferred && threads && threads.calibrating && threads.calibrating() && flag(el, 'data-woven-calibrate-hidden', 'calibrateHidden', true));
     var swirl = null, mode = threads ? 'threads' : 'photo', paused = false;
 
     function startSwirl(){
@@ -358,8 +359,7 @@
       var o = { src: fallback }; SWIRL_KEYS.forEach(function(k){ o[k] = state[k]; });
       try { swirl = mwpSwirl(cSwirl, o); } catch (e) { console.warn('[woven]', e); }
     }
-    if (threads && calibratingNow) showPoster(el, fallback);      // the probe settles the quality behind the still, then the threads fade in
-    else if (threads) el.style.backgroundImage = 'none';
+    if (threads) el.style.backgroundImage = 'none';
     else if (fallback){ cThreads.hidden = true; cSwirl.hidden = false; startSwirl(); }
     if (!threads && !swirl) showPoster(el, fallback);              // no WebGL renderer at all: the still
     if (calibratingNow) setTimeout(reveal, 6000);                  // safety: never stay hidden
@@ -691,5 +691,5 @@
 
   function boot(){ document.querySelectorAll('[data-woven-hero]').forEach(init); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.7.1' };
+  window.WovenThreadHero = { init: init, defaults: DEFAULTS, version: '1.7.3' };
 })();
